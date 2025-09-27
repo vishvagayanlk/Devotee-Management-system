@@ -170,50 +170,124 @@ function AppContent() {
     );
   }
 
-  // If user is authenticated but not approved, show pending approval message
+  // If user is authenticated but not approved, show dashboard with limited access
   if (isSignedIn && userProfile && !userProfile.is_approved) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <div className="mx-auto h-16 w-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
-              <svg className="h-8 w-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+      <div 
+        className="min-h-screen"
+        style={{
+          backgroundColor: templeSettings?.background_color || '#FEF7ED',
+          fontFamily: templeSettings?.font_family || 'Inter, sans-serif'
+        }}
+      >
+        <Layout>
+          <div className="p-6">
+            {/* Pending Approval Banner */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-yellow-800">
+                    Account Pending Approval
+                  </h3>
+                  <div className="mt-2 text-sm text-yellow-700">
+                    <p>Your account is pending approval from an administrator. You have limited access until approved.</p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Account Pending Approval
-            </h2>
-            <p className="text-gray-600 mb-4">
-              Your account has been created and is pending approval from an administrator. 
-              You will receive an email notification once your account is approved.
-            </p>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-              <p className="text-yellow-800 text-sm">
-                <strong>What happens next?</strong>
-              </p>
-              <ul className="text-yellow-700 text-sm mt-2 space-y-1">
-                <li>• An administrator will review your registration</li>
-                <li>• You'll receive an email when approved</li>
-                <li>• You can then sign in to access the system</li>
-              </ul>
-            </div>
-            <div className="space-y-2">
-              <button
-                onClick={() => window.location.href = '/sign-in'}
-                className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
-              >
-                Go to Sign In
-              </button>
-              <button
-                onClick={() => window.location.reload()}
-                className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm"
-              >
-                Refresh Status
-              </button>
+
+            {/* Limited Dashboard Content */}
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                  Welcome, {userProfile.full_name}!
+                </h1>
+                <p className="text-gray-600">
+                  Your account is being reviewed. Here's what you can do while waiting for approval:
+                </p>
+              </div>
+
+              {/* Limited Options */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Profile Card */}
+                <div className="bg-white rounded-lg shadow-sm border p-6">
+                  <div className="flex items-center mb-4">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 ml-3">Profile</h3>
+                  </div>
+                  <p className="text-gray-600 text-sm mb-4">
+                    View and update your profile information.
+                  </p>
+                  <button
+                    onClick={() => window.location.href = '/profile'}
+                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  >
+                    View Profile
+                  </button>
+                </div>
+
+                {/* Status Card */}
+                <div className="bg-white rounded-lg shadow-sm border p-6">
+                  <div className="flex items-center mb-4">
+                    <div className="p-2 bg-yellow-100 rounded-lg">
+                      <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 ml-3">Status</h3>
+                  </div>
+                  <p className="text-gray-600 text-sm mb-4">
+                    Check your approval status and account details.
+                  </p>
+                  <div className="text-sm">
+                    <div className="flex justify-between mb-1">
+                      <span className="text-gray-500">Status:</span>
+                      <span className="text-yellow-600 font-medium">Pending</span>
+                    </div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-gray-500">Role:</span>
+                      <span className="text-gray-700 capitalize">{userProfile.role}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Email:</span>
+                      <span className="text-gray-700 text-xs">{userProfile.email}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Help Card */}
+                <div className="bg-white rounded-lg shadow-sm border p-6">
+                  <div className="flex items-center mb-4">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 ml-3">Help</h3>
+                  </div>
+                  <p className="text-gray-600 text-sm mb-4">
+                    Need assistance? Contact the temple administration.
+                  </p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                  >
+                    Refresh Status
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </Layout>
       </div>
     );
   }

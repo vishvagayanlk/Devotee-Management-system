@@ -15,7 +15,7 @@ import {
 import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { UserButton } from '@clerk/clerk-react';
 import { useTheme } from '../contexts/ThemeContext';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useLanguage } from '../contexts/LanguageContextFallback';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -51,7 +51,15 @@ export default function Layout({ children }: LayoutProps) {
     { id: 'settings', label: t('nav.settings'), icon: Settings, path: '/settings' },
   ];
 
-  const navItems = isAdmin 
+  // Show limited navigation for pending approval users
+  const limitedNavItems = [
+    { id: 'dashboard', label: t('nav.dashboard'), icon: User, path: '/dashboard' },
+    { id: 'profile', label: t('nav.profile'), icon: Settings, path: '/profile' },
+  ];
+
+  const navItems = !userProfile?.is_approved 
+    ? limitedNavItems
+    : isAdmin 
     ? [...userNavItems, ...committeeNavItems, ...adminNavItems]
     : isCommittee 
     ? [...userNavItems, ...committeeNavItems] 
@@ -110,12 +118,19 @@ export default function Layout({ children }: LayoutProps) {
               </p>
               <div className="flex items-center mt-1">
                 <div
-                  className="w-2 h-2 rounded-full mr-2 flex-shrink-0 bg-green-400"
+                  className={`w-2 h-2 rounded-full mr-2 flex-shrink-0 ${
+                    userProfile?.is_approved ? 'bg-green-400' : 'bg-yellow-400'
+                  }`}
                 />
                 <span className="text-xs text-muted capitalize truncate">
-                  Active
+                  {userProfile?.is_approved ? 'Active' : 'Pending Approval'}
                 </span>
               </div>
+              {!userProfile?.is_approved && (
+                <div className="mt-2 text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
+                  Limited Access
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -143,7 +158,8 @@ export default function Layout({ children }: LayoutProps) {
           })}
         </nav>
 
-        <div className="p-4 border-t border-theme">
+        <div className="p-4 border-t border-theme space-y-3">
+          {/* User Profile Button */}
           <div className="w-full px-4 py-3">
             <UserButton 
               afterSignOutUrl="/sign-in"
@@ -156,6 +172,15 @@ export default function Layout({ children }: LayoutProps) {
               }}
             />
           </div>
+          
+          {/* Sign Out Button */}
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg transition-all duration-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+          >
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            <span className="text-sm font-medium">Sign Out</span>
+          </button>
         </div>
       </div>
 

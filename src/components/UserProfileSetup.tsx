@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useLanguage } from '../contexts/LanguageContextFallback';
 import { useOnboardingProgress } from '../hooks/useOnboardingProgress';
 import { supabase } from '../lib/supabase';
 import { errorTracking } from '../lib/monitoring';

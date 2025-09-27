@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, memo, useCallback } from 'react';
 import { Users, BookOpen, Calendar, TrendingUp, UserCheck, Clock, Heart, Building2, QrCode, Download, Printer } from 'lucide-react';
 import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useLanguage } from '../contexts/LanguageContextFallback';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import QRCodeGenerator from './QRCodeGenerator';

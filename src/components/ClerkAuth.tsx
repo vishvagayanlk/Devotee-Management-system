@@ -1,7 +1,7 @@
 import React from 'react';
 import { SignIn, SignUp } from '@clerk/clerk-react';
 import { useTheme } from '../contexts/ThemeContext';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useLanguage } from '../contexts/LanguageContextFallback';
 import { Heart, Building2 } from 'lucide-react';
 
 interface ClerkAuthProps {
