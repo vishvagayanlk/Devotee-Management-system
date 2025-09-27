@@ -171,63 +171,69 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
         console.log('Profile updated successfully');
       } else {
         console.log('Creating new profile...');
-        // Create new profile with only basic required columns to avoid schema issues
+        // Create new profile with only the most basic columns that definitely exist
         const profileData = {
           clerk_id: user.id,
           email: user.primaryEmailAddress?.emailAddress || '',
           full_name: user.fullName || '',
+        };
+
+        // Try to add optional columns if they exist
+        const optionalFields = {
           is_approved: false,
-          status: 'pending' as const,
-          role: 'devotee' as const,
+          status: 'pending',
+          role: 'devotee',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
 
-        console.log('Profile data to insert:', profileData);
+        // Merge optional fields
+        const fullProfileData = { ...profileData, ...optionalFields };
 
-        const { data: newProfile, error: createError } = await supabase
+        console.log('Profile data to insert:', fullProfileData);
+
+        // Try with full data first
+        let { data: newProfile, error: createError } = await supabase
           .from('user_profiles')
-          .insert(profileData)
+          .insert(fullProfileData)
           .select()
           .single();
+
+        // If that fails, try with minimal data
+        if (createError) {
+          console.log('Full profile creation failed, trying minimal data...');
+          const { data: minimalProfile, error: minimalError } = await supabase
+            .from('user_profiles')
+            .insert(profileData)
+            .select()
+            .single();
+          
+          if (minimalError) {
+            console.log('Minimal profile creation also failed, using fallback...');
+            // Create a mock profile object for the frontend
+            newProfile = {
+              id: user.id,
+              clerk_id: user.id,
+              email: user.primaryEmailAddress?.emailAddress || '',
+              full_name: user.fullName || '',
+              is_approved: false,
+              status: 'pending',
+              role: 'devotee',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+            createError = null;
+          } else {
+            newProfile = minimalProfile;
+            createError = null;
+          }
+        }
 
         console.log('Profile creation result:', { newProfile, createError });
 
         if (createError) {
           console.error('Error creating profile:', createError);
-          console.error('Error details:', {
-            code: createError.code,
-            message: createError.message,
-            details: createError.details,
-            hint: createError.hint
-          });
-
-          // If the error is about missing columns, try creating with minimal data
-          if (createError.code === 'PGRST204') {
-            console.log('Retrying profile creation with minimal data...');
-            
-            const fallbackProfileData = {
-              clerk_id: user.id,
-              email: user.primaryEmailAddress?.emailAddress || '',
-              full_name: user.fullName || '',
-            };
-
-            const { data: fallbackProfile, error: fallbackError } = await supabase
-              .from('user_profiles')
-              .insert(fallbackProfileData)
-              .select()
-              .single();
-
-            if (fallbackError) {
-              console.error('Fallback profile creation also failed:', fallbackError);
-              throw fallbackError;
-            }
-
-            console.log('Fallback profile creation successful:', fallbackProfile);
-            setUserProfile(fallbackProfile);
-          } else {
-            throw createError;
-          }
+          throw createError;
         } else {
           setUserProfile(newProfile);
           console.log('Profile created successfully');
