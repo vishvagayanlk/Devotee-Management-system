@@ -190,8 +190,7 @@ export default function Auth() {
           formData.fullName, 
           formData.nicNumber, 
           formData.address, 
-          formData.phone,
-          formData.groupId
+          formData.phone
         );
         
         // Show success screen after successful signup

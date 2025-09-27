@@ -16,6 +16,7 @@ import SignupSuccess from './components/SignupSuccess';
 import HandshakeDebug from './components/HandshakeDebug';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import ClerkIntegrationTest from './components/ClerkIntegrationTest';
 
 // Lazy load components for better performance
 const DashboardWrapper = lazy(() => import('./components/DashboardWrapper'));
@@ -132,6 +133,7 @@ function AppContent() {
           <Route path="/debug" element={<ProfileDebugger />} />
           <Route path="/onboarding-debug" element={<OnboardingDebugger />} />
           <Route path="/onboarding-reset" element={<OnboardingReset />} />
+          <Route path="/clerk-test" element={<ClerkIntegrationTest />} />
           <Route path="*" element={<ClerkAuth mode="signin" />} />
         </Routes>
       </div>
