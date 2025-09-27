@@ -466,12 +466,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Sign up error details:', error);
         console.error('Error code:', error.status);
         console.error('Error message:', error.message);
-        console.error('Error details:', error.details);
+        console.error('Error details:', error.message);
         
         // Try a simpler signup without metadata if the first attempt fails
         if (error.message.includes('invalid') || error.message.includes('Email')) {
           console.log('Trying simpler signup without metadata...');
-          const { data: simpleData, error: simpleError } = await supabase.auth.signUp({
+          const { error: simpleError } = await supabase.auth.signUp({
             email: sanitizedData.email,
             password,
           });
@@ -481,7 +481,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             // Try with a test email to see if it's a Supabase configuration issue
             console.log('Testing with a known good email format...');
-            const { data: testData, error: testError } = await supabase.auth.signUp({
+            const { error: testError } = await supabase.auth.signUp({
               email: 'test@example.com',
               password: 'TestPassword123!',
             });
@@ -508,7 +508,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const cleanedEmail = `${localPart}@${domain}`;
                 
                 console.log('Trying with cleaned email:', cleanedEmail);
-                const { data: cleanedData, error: cleanedError } = await supabase.auth.signUp({
+                const { error: cleanedError } = await supabase.auth.signUp({
                   email: cleanedEmail,
                   password: 'TestPassword123!',
                 });

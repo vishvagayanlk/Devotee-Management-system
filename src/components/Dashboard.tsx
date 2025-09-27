@@ -1,20 +1,13 @@
-import React, { useState, useEffect, useMemo, memo, useCallback } from 'react';
+import React, { useState, useMemo, memo, useCallback } from 'react';
 import { Users, BookOpen, Calendar, TrendingUp, UserCheck, Clock, Building2, QrCode, Download, Printer } from 'lucide-react';
 import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContextFallback';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { useCachedDashboardStats } from '../hooks/useCachedData';
 import QRCodeGenerator from './QRCodeGenerator';
 
-interface DashboardStats {
-  totalRecords: number;
-  totalEvents: number;
-  totalDevotees?: number;
-  pendingDevotees?: number;
-  recentRecords?: any[];
-  upcomingEvents?: any[];
-}
+// DashboardStats interface is now defined in the useCachedData hook
 
 // Memoized card component to prevent unnecessary re-renders
 const DashboardCard = memo(({ card, index }: { card: any; index: number }) => {
@@ -72,138 +65,20 @@ export default function Dashboard() {
   }, [templeSettings]);
   
   const navigate = useNavigate();
-  const [stats, setStats] = useState<DashboardStats>({
-    totalRecords: 0,
-    totalEvents: 0,
-    totalDevotees: 0,
-    pendingDevotees: 0,
-    recentRecords: [],
-    upcomingEvents: [],
-  });
-  const [loading, setLoading] = useState(true);
   const [showQRGenerator, setShowQRGenerator] = useState(false);
+  
+  // Use cached dashboard stats
+  const { data: stats, loading, error, refetch } = useCachedDashboardStats(
+    profile?.id || '',
+    isAdmin,
+    isCommittee
+  );
 
   // Memoize callback functions to prevent unnecessary re-renders
   const handleShowQRGenerator = useCallback(() => setShowQRGenerator(true), []);
   const handleHideQRGenerator = useCallback(() => setShowQRGenerator(false), []);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        if (isAdmin) {
-          // Admin users see system-wide statistics
-          console.log('Fetching admin dashboard data...');
-          const results = await Promise.allSettled([
-            supabase.from('devotee_records').select('id', { count: 'exact' }),
-            supabase.from('temple_events').select('id', { count: 'exact' }),
-            supabase.from('user_profiles').select('id', { count: 'exact' }),
-            supabase.from('user_profiles').select('id', { count: 'exact' }).eq('is_approved', false),
-            supabase.from('devotee_records').select('title, created_at, user_id').order('created_at', { ascending: false }).limit(5),
-            supabase.from('temple_events').select('title, start_date, user_id').gte('start_date', new Date().toISOString()).order('start_date', { ascending: true }).limit(5),
-          ]);
-
-          const [recordsRes, eventsRes, devoteesRes, pendingRes, recentRecordsRes, upcomingEventsRes] = results.map(result => 
-            result.status === 'fulfilled' ? result.value : { count: 0, data: [], error: null }
-          );
-
-          console.log('Admin stats:', {
-            totalRecords: recordsRes.count || 0,
-            totalEvents: eventsRes.count || 0,
-            totalDevotees: devoteesRes.count || 0,
-            pendingDevotees: pendingRes.count || 0,
-          });
-
-          setStats({
-            totalRecords: recordsRes.count || 0,
-            totalEvents: eventsRes.count || 0,
-            totalDevotees: devoteesRes.count || 0,
-            pendingDevotees: pendingRes.count || 0,
-            recentRecords: (recentRecordsRes as any).data || [],
-            upcomingEvents: (upcomingEventsRes as any).data || [],
-          });
-        } else if (isCommittee) {
-          // Committee users see limited admin data
-          console.log('Fetching committee dashboard data...');
-          const results = await Promise.allSettled([
-            supabase.from('devotee_records').select('id', { count: 'exact' }),
-            supabase.from('temple_events').select('id', { count: 'exact' }),
-            supabase.from('user_profiles').select('id', { count: 'exact' }),
-            Promise.resolve({ count: 0 }), // Committee can't see pending users
-            supabase.from('devotee_records').select('title, created_at, user_id').order('created_at', { ascending: false }).limit(5),
-            supabase.from('temple_events').select('title, start_date, user_id').gte('start_date', new Date().toISOString()).order('start_date', { ascending: true }).limit(5),
-          ]);
-
-          const [recordsRes, eventsRes, devoteesRes, pendingRes, recentRecordsRes, upcomingEventsRes] = results.map(result => 
-            result.status === 'fulfilled' ? result.value : { count: 0, data: [], error: null }
-          );
-
-          setStats({
-            totalRecords: recordsRes.count || 0,
-            totalEvents: eventsRes.count || 0,
-            totalDevotees: devoteesRes.count || 0,
-            pendingDevotees: pendingRes.count || 0,
-            recentRecords: (recentRecordsRes as any).data || [],
-            upcomingEvents: (upcomingEventsRes as any).data || [],
-          });
-        } else {
-          // For regular users, get both created events and assigned events
-          const results = await Promise.allSettled([
-            supabase.from('devotee_records').select('id', { count: 'exact' }).eq('user_id', profile?.id),
-            supabase.from('temple_events').select('id', { count: 'exact' }).eq('user_id', profile?.id),
-            supabase.from('event_assignments').select('event_id').eq('user_id', profile?.id),
-            supabase.from('devotee_records').select('title, created_at').eq('user_id', profile?.id).order('created_at', { ascending: false }).limit(5),
-            supabase.from('temple_events').select('title, start_date').eq('user_id', profile?.id).gte('start_date', new Date().toISOString()).order('start_date', { ascending: true }).limit(5),
-          ]);
-
-          const [recordsRes, createdEventsRes, assignedEventsRes, recentRecordsRes, createdUpcomingRes] = results.map(result => 
-            result.status === 'fulfilled' ? result.value : { count: 0, data: [], error: null }
-          );
-
-          // Get assigned event IDs
-          const assignedEventIds = assignedEventsRes.data?.map((assignment: any) => assignment.event_id) || [];
-          
-          // Fetch assigned events details
-          let assignedEventsData: any[] = [];
-          let assignedUpcomingData: any[] = [];
-          if (assignedEventIds.length > 0) {
-            const assignedEventsRes = await supabase
-              .from('temple_events')
-              .select('id, title, start_date')
-              .in('id', assignedEventIds);
-            
-            if (assignedEventsRes.data) {
-              assignedEventsData = assignedEventsRes.data;
-              assignedUpcomingData = assignedEventsRes.data
-                .filter((event: any) => new Date(event.start_date) >= new Date())
-                .sort((a: any, b: any) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
-                .slice(0, 5);
-            }
-          }
-
-          // Combine created and assigned events
-          const totalEvents = (createdEventsRes.count || 0) + assignedEventsData.length;
-          const allUpcomingEvents = [
-            ...(createdUpcomingRes.data || []),
-            ...assignedUpcomingData
-          ].sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()).slice(0, 5);
-
-          setStats({
-            totalRecords: recordsRes.count || 0,
-            totalEvents: totalEvents,
-            recentRecords: recentRecordsRes.data || [],
-            upcomingEvents: allUpcomingEvents,
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Always fetch stats for now (removed is_approved check)
-    fetchStats();
-  }, [profile, isAdmin, isCommittee]);
+  // Stats are now handled by the cached hook
 
   // Removed approval check - users can access dashboard immediately
 
@@ -211,7 +86,7 @@ export default function Dashboard() {
   const userCards = useMemo(() => [
     {
       title: t('dashboard.my_records'),
-      value: stats.totalRecords,
+      value: stats?.totalRecords || 0,
       icon: BookOpen,
       color: 'bg-primary',
       bgColor: 'bg-primary-50',
@@ -220,7 +95,7 @@ export default function Dashboard() {
     },
     {
       title: t('dashboard.my_events'),
-      value: stats.totalEvents,
+      value: stats?.totalEvents || 0,
       icon: Calendar,
       color: 'bg-accent',
       bgColor: 'bg-accent-50',
@@ -237,12 +112,12 @@ export default function Dashboard() {
       description: t('dashboard.qr_description'),
       onClick: handleShowQRGenerator,
     },
-  ], [t, stats.totalRecords, stats.totalEvents, handleShowQRGenerator]);
+  ], [t, stats?.totalRecords, stats?.totalEvents, handleShowQRGenerator]);
 
   const committeeCards = useMemo(() => [
     {
       title: 'Total Devotees',
-      value: stats.totalDevotees,
+      value: stats?.totalDevotees || 0,
       icon: Users,
       color: 'bg-secondary',
       bgColor: 'bg-secondary-50',
@@ -251,19 +126,19 @@ export default function Dashboard() {
     },
     {
       title: 'Pending Approval',
-      value: stats.pendingDevotees,
+      value: stats?.pendingDevotees || 0,
       icon: TrendingUp,
       color: 'bg-accent',
       bgColor: 'bg-accent-50',
       textColor: 'text-accent-700',
       description: 'Awaiting review',
     },
-  ], [stats.totalDevotees, stats.pendingDevotees]);
+  ], [stats?.totalDevotees, stats?.pendingDevotees]);
 
   const adminCards = useMemo(() => [
     {
       title: 'Total Records',
-      value: stats.totalRecords,
+      value: stats?.totalRecords || 0,
       icon: BookOpen,
       color: 'bg-primary',
       bgColor: 'bg-primary-50',
@@ -272,7 +147,7 @@ export default function Dashboard() {
     },
     {
       title: 'Total Events',
-      value: stats.totalEvents,
+      value: stats?.totalEvents || 0,
       icon: Calendar,
       color: 'bg-accent',
       bgColor: 'bg-accent-50',
@@ -281,7 +156,7 @@ export default function Dashboard() {
     },
     {
       title: 'Total Devotees',
-      value: stats.totalDevotees,
+      value: stats?.totalDevotees || 0,
       icon: Users,
       color: 'bg-secondary',
       bgColor: 'bg-secondary-50',
@@ -290,14 +165,14 @@ export default function Dashboard() {
     },
     {
       title: 'Pending Approval',
-      value: stats.pendingDevotees,
+      value: stats?.pendingDevotees || 0,
       icon: TrendingUp,
       color: 'bg-yellow-500',
       bgColor: 'bg-yellow-50',
       textColor: 'text-yellow-700',
       description: 'Awaiting review',
     },
-  ], [stats.totalRecords, stats.totalEvents, stats.totalDevotees, stats.pendingDevotees]);
+  ], [stats?.totalRecords, stats?.totalEvents, stats?.totalDevotees, stats?.pendingDevotees]);
 
   const cards = useMemo(() => {
     if (isAdmin) {
@@ -334,8 +209,19 @@ export default function Dashboard() {
                   Role: {profile?.role || 'Unknown'} | 
                   Approved: {profile?.is_approved ? 'Yes' : 'No'}
                 </p>
+                {error && (
+                  <p className="text-sm text-red-700 mt-1">
+                    Error: {error.message}
+                  </p>
+                )}
               </div>
               <div className="flex space-x-2">
+                <button
+                  onClick={() => refetch()}
+                  className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-green-700 transition-colors"
+                >
+                  Refresh Data
+                </button>
                 <button
                   onClick={() => forceCreateProfile()}
                   className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
@@ -497,9 +383,9 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="p-6">
-            {stats.recentRecords && stats.recentRecords.length > 0 ? (
+            {stats?.recentRecords && stats.recentRecords.length > 0 ? (
               <div className="space-y-3">
-                {stats.recentRecords.map((record, index) => (
+                {stats.recentRecords.map((record: any, index: number) => (
                   <div key={index} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-b-0">
                     <div>
                       <p className="text-sm font-medium text-gray-900 truncate max-w-xs">
@@ -532,9 +418,9 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="p-6">
-            {stats.upcomingEvents && stats.upcomingEvents.length > 0 ? (
+            {stats?.upcomingEvents && stats.upcomingEvents.length > 0 ? (
               <div className="space-y-3">
-                {stats.upcomingEvents.map((event, index) => (
+                {stats.upcomingEvents.map((event: any, index: number) => (
                   <div key={index} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-b-0">
                     <div>
                       <p className="text-sm font-medium text-gray-900 truncate max-w-xs">
@@ -576,7 +462,7 @@ export default function Dashboard() {
                   <div>
                     <h4 className="font-medium text-gray-900">Review Devotees</h4>
                     <p className="text-sm text-gray-600">Approve pending devotee registrations</p>
-                    {stats.pendingDevotees && stats.pendingDevotees > 0 && (
+                    {stats?.pendingDevotees && stats.pendingDevotees > 0 && (
                       <span className="inline-block mt-1 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
                         {stats.pendingDevotees} pending
                       </span>
@@ -597,7 +483,7 @@ export default function Dashboard() {
                     <h4 className="font-medium text-gray-900">Manage Records</h4>
                     <p className="text-sm text-gray-600">View and moderate devotee records</p>
                     <span className="inline-block mt-1 px-2 py-1 bg-accent-100 text-accent-800 text-xs rounded-full">
-                      {stats.totalRecords} total
+                      {stats?.totalRecords || 0} total
                     </span>
                   </div>
                 </div>
@@ -615,7 +501,7 @@ export default function Dashboard() {
                     <h4 className="font-medium text-gray-900">Temple Events</h4>
                     <p className="text-sm text-gray-600">Monitor temple ceremonies and events</p>
                     <span className="inline-block mt-1 px-2 py-1 bg-secondary-100 text-secondary-800 text-xs rounded-full">
-                      {stats.totalEvents} total
+                      {stats?.totalEvents || 0} total
                     </span>
                   </div>
                 </div>

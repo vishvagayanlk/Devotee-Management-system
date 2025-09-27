@@ -20,7 +20,7 @@ export default function DevoteeManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'devotee' | 'committee' | 'admin'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'devotee' | 'committee' | 'admin' | 'super_admin'>('all');
   const [groupFilter, setGroupFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'created_at' | 'status' | 'group'>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -76,7 +76,7 @@ export default function DevoteeManagement() {
     emergency_contact: '',
     temple_join_date: '',
     bio: '',
-    role: 'devotee' as 'devotee' | 'committee' | 'admin',
+    role: 'devotee' as 'devotee' | 'committee' | 'admin' | 'super_admin',
     status: 'pending' as 'pending' | 'approved' | 'rejected',
     group_id: '',
   });
@@ -1069,12 +1069,13 @@ export default function DevoteeManagement() {
                     </label>
                     <select
                       value={editForm.role}
-                      onChange={(e) => setEditForm({ ...editForm, role: e.target.value as 'devotee' | 'committee' | 'admin' })}
+                      onChange={(e) => setEditForm({ ...editForm, role: e.target.value as 'devotee' | 'committee' | 'admin' | 'super_admin' })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     >
                       <option value="devotee">Devotee</option>
                       <option value="committee">Committee Member</option>
                       <option value="admin">Admin</option>
+                      <option value="super_admin">Super Admin</option>
                     </select>
                   </div>
                   
@@ -2011,7 +2012,7 @@ export default function DevoteeManagement() {
                         <h3 className="text-base sm:text-lg font-medium text-gray-900 truncate text-center sm:text-left">{devotee.full_name}</h3>
                         <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                         <span className={getRoleBadge(devotee.role)}>
-                          {devotee.role === 'devotee' ? 'Devotee' : devotee.role === 'committee' ? 'Committee' : 'Admin'}
+                          {devotee.role === 'devotee' ? 'Devotee' : devotee.role === 'committee' ? 'Committee' : devotee.role === 'super_admin' ? 'Super Admin' : 'Admin'}
                         </span>
                         <span className={getStatusBadge(devotee.status)}>
                           {devotee.status.charAt(0).toUpperCase() + devotee.status.slice(1)}

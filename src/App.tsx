@@ -7,13 +7,9 @@ import { ClerkAuthProvider, useClerkAuth } from './contexts/ClerkAuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContextFallback';
 import ClerkAuth from './components/ClerkAuth';
-import OnboardingDebugger from './components/OnboardingDebugger';
-import OnboardingReset from './components/OnboardingReset';
 import PasswordReset from './components/PasswordReset';
 import SSOCallback from './components/SSOCallback';
 import SignupSuccess from './components/SignupSuccess';
-import HandshakeDebug from './components/HandshakeDebug';
-import HandshakeHandler from './components/HandshakeHandler';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import SignUpPage from './components/SignUpPage';
@@ -34,16 +30,10 @@ function AppContent() {
   const { t } = useLanguage();
   const [showTimeoutMessage, setShowTimeoutMessage] = React.useState(false);
 
-  // Debug logging for handshake URLs
+  // Debug logging
   const urlParams = new URLSearchParams(window.location.search);
-  const hasHandshake = urlParams.has('__clerk_handshake') || urlParams.has('__clerk_handshake_token');
-  const handshakeToken = urlParams.get('__clerk_handshake');
-  const handshakeTokenParam = urlParams.get('__clerk_handshake_token');
   
   console.log('AppContent: Current state', {
-    hasHandshake,
-    handshakeToken: handshakeToken ? 'Present' : 'Missing',
-    handshakeTokenParam: handshakeTokenParam ? 'Present' : 'Missing',
     url: window.location.href,
     search: window.location.search,
     pathname: window.location.pathname,
@@ -56,19 +46,6 @@ function AppContent() {
   if (window.location.pathname === '/sign-up') {
     console.log('AppContent: Sign-up page requested');
     console.log('AppContent: isLoaded:', isLoaded, 'isSignedIn:', isSignedIn);
-  }
-
-  // Handle handshake process
-  if (hasHandshake && isLoaded) {
-    console.log('AppContent: Handshake detected, processing...');
-    console.log('AppContent: Handshake token:', handshakeToken ? 'Present' : 'Missing');
-    console.log('AppContent: Handshake token param:', handshakeTokenParam ? 'Present' : 'Missing');
-    return <HandshakeHandler />;
-  }
-
-  // Additional debugging for handshake detection
-  if (hasHandshake) {
-    console.log('AppContent: Handshake detected but isLoaded:', isLoaded);
   }
 
   // Show timeout message if loading takes too long
@@ -91,13 +68,6 @@ function AppContent() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600 mb-2">Loading your account...</p>
-          {hasHandshake && (
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-blue-800 text-sm">
-                🔄 Processing authentication handshake...
-              </p>
-            </div>
-          )}
           {showTimeoutMessage && (
             <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-yellow-800 text-sm">
@@ -157,8 +127,6 @@ function AppContent() {
           <Route path="/signup-success/*" element={<SignupSuccess />} />
           <Route path="/sso-callback" element={<SSOCallback />} />
           <Route path="/debug" element={<ProfileDebugger />} />
-          <Route path="/onboarding-debug" element={<OnboardingDebugger />} />
-          <Route path="/onboarding-reset" element={<OnboardingReset />} />
           <Route path="/profile-debug" element={<ProfileDebugger />} />
           <Route path="*" element={<ClerkAuth mode="signin" />} />
         </Routes>
@@ -479,7 +447,6 @@ export default function App() {
           <ClerkAuthProvider>
             <ThemeProvider>
               <AppContent />
-              <HandshakeDebug />
             </ThemeProvider>
           </ClerkAuthProvider>
         </LanguageProvider>

@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { useLanguage } from '../contexts/LanguageContextFallback';
-import { useOnboardingProgress } from '../hooks/useOnboardingProgress';
+// useLanguage removed as it's not used
 import { supabase } from '../lib/supabase';
 import { errorTracking } from '../lib/monitoring';
 import { 
   User, 
   Phone, 
-  Mail, 
   MapPin, 
   CreditCard, 
   Users, 
@@ -26,7 +24,7 @@ interface UserProfileSetupProps {
 interface FormData {
   full_name: string;
   phone: string;
-  nic: string;
+  nic_number: string;
   address: string;
   group_id: string;
   emergency_contact_name: string;
@@ -46,10 +44,7 @@ interface Group {
 export default function UserProfileSetup({ onComplete }: UserProfileSetupProps) {
   const { userProfile, updateUserProfile } = useClerkAuth();
   const { templeSettings } = useTheme();
-  const { t } = useLanguage();
-  const { updateProgress, getOverallProgress } = useOnboardingProgress();
   const [groups, setGroups] = useState<Group[]>([]);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [currentStep, setCurrentStep] = useState(1);
@@ -58,7 +53,7 @@ export default function UserProfileSetup({ onComplete }: UserProfileSetupProps) 
   const [formData, setFormData] = useState<FormData>({
     full_name: userProfile?.full_name || '',
     phone: userProfile?.phone || '',
-    nic: userProfile?.nic || '',
+    nic_number: userProfile?.nic_number || '',
     address: userProfile?.address || '',
     group_id: userProfile?.group_id || '',
     emergency_contact_name: '',
@@ -101,10 +96,10 @@ export default function UserProfileSetup({ onComplete }: UserProfileSetupProps) 
       } else if (!/^[0-9+\-\s()]+$/.test(formData.phone)) {
         newErrors.phone = 'Please enter a valid phone number';
       }
-      if (!formData.nic.trim()) {
-        newErrors.nic = 'NIC number is required';
-      } else if (!/^[0-9]{9}[vVxX]?$|^[0-9]{12}$/.test(formData.nic.replace(/\s/g, ''))) {
-        newErrors.nic = 'Please enter a valid NIC number';
+      if (!formData.nic_number.trim()) {
+        newErrors.nic_number = 'NIC number is required';
+      } else if (!/^[0-9]{9}[vVxX]?$|^[0-9]{12}$/.test(formData.nic_number.replace(/\s/g, ''))) {
+        newErrors.nic_number = 'Please enter a valid NIC number';
       }
       if (!formData.address.trim()) {
         newErrors.address = 'Address is required';
@@ -159,7 +154,7 @@ export default function UserProfileSetup({ onComplete }: UserProfileSetupProps) 
       await updateUserProfile({
         full_name: formData.full_name,
         phone: formData.phone,
-        nic: formData.nic,
+        nic_number: formData.nic_number,
         address: formData.address,
         group_id: formData.group_id,
       });
@@ -193,12 +188,7 @@ export default function UserProfileSetup({ onComplete }: UserProfileSetupProps) 
       console.log('Profile setup completed successfully');
       errorTracking.captureMessage('User profile setup completed', 'info');
       
-      // Update onboarding progress
-      updateProgress('profile_basic_info', true);
-      updateProgress('profile_contact_info', true);
-      updateProgress('profile_address_info', true);
-      updateProgress('profile_verification', true);
-      updateProgress('profile_complete', true);
+      // Profile setup completed
       
       // Set a flag to prevent onboarding loop
       localStorage.setItem('profile_setup_completed', 'true');
@@ -281,18 +271,18 @@ export default function UserProfileSetup({ onComplete }: UserProfileSetupProps) 
             <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted" />
             <input
               type="text"
-              value={formData.nic}
-              onChange={(e) => handleInputChange('nic', e.target.value)}
+              value={formData.nic_number}
+              onChange={(e) => handleInputChange('nic_number', e.target.value)}
               className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary ${
-                errors.nic ? 'border-red-500' : 'border-theme'
+                errors.nic_number ? 'border-red-500' : 'border-theme'
               }`}
               placeholder="123456789V or 1234567890123"
             />
           </div>
-          {errors.nic && (
+          {errors.nic_number && (
             <p className="mt-1 text-sm text-red-600 flex items-center">
               <AlertCircle className="h-4 w-4 mr-1" />
-              {errors.nic}
+              {errors.nic_number}
             </p>
           )}
         </div>
@@ -499,16 +489,7 @@ export default function UserProfileSetup({ onComplete }: UserProfileSetupProps) 
     </div>
   );
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted">Loading profile setup...</p>
-        </div>
-      </div>
-    );
-  }
+  // Loading state removed as it's not used
 
   return (
     <div 
@@ -534,16 +515,16 @@ export default function UserProfileSetup({ onComplete }: UserProfileSetupProps) 
 
         {/* Progress Bar */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-text">Profile Setup Progress</span>
-            <span className="text-sm text-muted">{getOverallProgress()}% Complete</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-primary h-2 rounded-full transition-all duration-300"
-              style={{ width: `${getOverallProgress()}%` }}
-            />
-          </div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-text">Profile Setup Progress</span>
+          <span className="text-sm text-muted">{Math.round((currentStep / totalSteps) * 100)}% Complete</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div 
+            className="bg-primary h-2 rounded-full transition-all duration-300"
+            style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+          />
+        </div>
         </div>
 
         {/* Form Content */}
