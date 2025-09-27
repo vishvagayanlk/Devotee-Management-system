@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-09-26T20:26:52.069Z",
+  "temples": [
+    {
+      "success": true,
+      "temple_id": "bf09336b-4ba5-4c0b-bd62-d9a7b4b1be9d",
+      "temple_name": "Yapahuwa Rajamaha Viharaya",
+      "admin_id": "39e589f7-4a3f-4cb5-be40-915c0a4a4a65",
+      "admin_email": "admin@yapahuwatemple.lk",
+      "admin_name": "Chief Monk"
+    }
+  ],
+  "admins": [],
+  "errors": []
+}

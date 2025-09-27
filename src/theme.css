@@ -1,0 +1,280 @@
+/* Temple Theme System CSS Variables */
+:root {
+  /* Default theme colors */
+  --color-primary: #F97316;
+  --color-secondary: #DC2626;
+  --color-accent: #3B82F6;
+  --color-background: #FEF7ED;
+  --color-text: #1F2937;
+  --font-family: 'Inter', sans-serif;
+  
+  /* Extended color palette for comprehensive theming */
+  --color-surface: #FFFFFF;
+  --color-surface-secondary: #F8FAFC;
+  --color-border: #E2E8F0;
+  --color-border-light: #F1F5F9;
+  --color-muted: #64748B;
+  --color-muted-light: #94A3B8;
+  
+  /* Semantic colors */
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+  
+  /* Derived colors */
+  --color-primary-50: color-mix(in srgb, var(--color-primary) 5%, white);
+  --color-primary-100: color-mix(in srgb, var(--color-primary) 10%, white);
+  --color-primary-200: color-mix(in srgb, var(--color-primary) 20%, white);
+  --color-primary-300: color-mix(in srgb, var(--color-primary) 30%, white);
+  --color-primary-400: color-mix(in srgb, var(--color-primary) 40%, white);
+  --color-primary-500: var(--color-primary);
+  --color-primary-600: color-mix(in srgb, var(--color-primary) 60%, black);
+  --color-primary-700: color-mix(in srgb, var(--color-primary) 70%, black);
+  --color-primary-800: color-mix(in srgb, var(--color-primary) 80%, black);
+  --color-primary-900: color-mix(in srgb, var(--color-primary) 90%, black);
+  
+  --color-secondary-50: color-mix(in srgb, var(--color-secondary) 5%, white);
+  --color-secondary-100: color-mix(in srgb, var(--color-secondary) 10%, white);
+  --color-secondary-200: color-mix(in srgb, var(--color-secondary) 20%, white);
+  --color-secondary-300: color-mix(in srgb, var(--color-secondary) 30%, white);
+  --color-secondary-400: color-mix(in srgb, var(--color-secondary) 40%, white);
+  --color-secondary-500: var(--color-secondary);
+  --color-secondary-600: color-mix(in srgb, var(--color-secondary) 60%, black);
+  --color-secondary-700: color-mix(in srgb, var(--color-secondary) 70%, black);
+  --color-secondary-800: color-mix(in srgb, var(--color-secondary) 80%, black);
+  --color-secondary-900: color-mix(in srgb, var(--color-secondary) 90%, black);
+  
+  --color-accent-50: color-mix(in srgb, var(--color-accent) 5%, white);
+  --color-accent-100: color-mix(in srgb, var(--color-accent) 10%, white);
+  --color-accent-200: color-mix(in srgb, var(--color-accent) 20%, white);
+  --color-accent-300: color-mix(in srgb, var(--color-accent) 30%, white);
+  --color-accent-400: color-mix(in srgb, var(--color-accent) 40%, white);
+  --color-accent-500: var(--color-accent);
+  --color-accent-600: color-mix(in srgb, var(--color-accent) 60%, black);
+  --color-accent-700: color-mix(in srgb, var(--color-accent) 70%, black);
+  --color-accent-800: color-mix(in srgb, var(--color-accent) 80%, black);
+  --color-accent-900: color-mix(in srgb, var(--color-accent) 90%, black);
+}
+
+/* Apply theme to entire app */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-family);
+  background-color: var(--color-background);
+  color: var(--color-text);
+}
+
+body {
+  font-family: var(--font-family), 'Noto Sans Sinhala', 'Malithi Web', 'Iskoola Pota', 'LKLUG', sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Sinhala font support */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+/* Language-specific font settings */
+[lang="si"] {
+  font-family: 'Noto Sans Sinhala', 'Malithi Web', 'Iskoola Pota', 'LKLUG', sans-serif;
+  line-height: 1.6;
+}
+
+[lang="en"] {
+  font-family: var(--font-family), sans-serif;
+  line-height: 1.5;
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 640px) {
+  /* Improve touch targets */
+  button, a, input, select, textarea {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Better spacing for mobile */
+  .space-y-4 > * + * {
+    margin-top: 1rem;
+  }
+  
+  .space-y-6 > * + * {
+    margin-top: 1.5rem;
+  }
+  
+  /* Improve text readability */
+  body {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  
+  /* Better form inputs on mobile */
+  input, select, textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  /* Improve card layouts */
+  .bg-surface {
+    border-radius: 0.75rem;
+  }
+  
+  /* Better button spacing */
+  .flex-wrap.gap-2 > * {
+    margin: 0.25rem;
+  }
+}
+
+/* Main app container */
+#root {
+  min-height: 100vh;
+  background-color: var(--color-background);
+  color: var(--color-text);
+}
+
+/* Background utility classes */
+.bg-background { background-color: var(--color-background); }
+.bg-surface { background-color: var(--color-surface); }
+.bg-surface-secondary { background-color: var(--color-surface-secondary); }
+.bg-text { background-color: var(--color-text); }
+.bg-muted { background-color: var(--color-muted); }
+.bg-muted-light { background-color: var(--color-muted-light); }
+.bg-border { background-color: var(--color-border); }
+.bg-border-light { background-color: var(--color-border-light); }
+
+/* Text utility classes */
+.text-background { color: var(--color-background); }
+.text-text { color: var(--color-text); }
+.text-muted { color: var(--color-muted); }
+.text-muted-light { color: var(--color-muted-light); }
+.text-surface { color: var(--color-surface); }
+
+/* Border utility classes */
+.border-theme { border-color: var(--color-border); }
+.border-theme-light { border-color: var(--color-border-light); }
+.border-primary { border-color: var(--color-primary); }
+.border-secondary { border-color: var(--color-secondary); }
+.border-accent { border-color: var(--color-accent); }
+
+/* Theme utility classes */
+.bg-primary { background-color: var(--color-primary); }
+.bg-primary-50 { background-color: var(--color-primary-50); }
+.bg-primary-100 { background-color: var(--color-primary-100); }
+.bg-primary-200 { background-color: var(--color-primary-200); }
+.bg-primary-300 { background-color: var(--color-primary-300); }
+.bg-primary-400 { background-color: var(--color-primary-400); }
+.bg-primary-500 { background-color: var(--color-primary-500); }
+.bg-primary-600 { background-color: var(--color-primary-600); }
+.bg-primary-700 { background-color: var(--color-primary-700); }
+.bg-primary-800 { background-color: var(--color-primary-800); }
+.bg-primary-900 { background-color: var(--color-primary-900); }
+
+.bg-secondary { background-color: var(--color-secondary); }
+.bg-secondary-50 { background-color: var(--color-secondary-50); }
+.bg-secondary-100 { background-color: var(--color-secondary-100); }
+.bg-secondary-200 { background-color: var(--color-secondary-200); }
+.bg-secondary-300 { background-color: var(--color-secondary-300); }
+.bg-secondary-400 { background-color: var(--color-secondary-400); }
+.bg-secondary-500 { background-color: var(--color-secondary-500); }
+.bg-secondary-600 { background-color: var(--color-secondary-600); }
+.bg-secondary-700 { background-color: var(--color-secondary-700); }
+.bg-secondary-800 { background-color: var(--color-secondary-800); }
+.bg-secondary-900 { background-color: var(--color-secondary-900); }
+
+.bg-accent { background-color: var(--color-accent); }
+.bg-accent-50 { background-color: var(--color-accent-50); }
+.bg-accent-100 { background-color: var(--color-accent-100); }
+.bg-accent-200 { background-color: var(--color-accent-200); }
+.bg-accent-300 { background-color: var(--color-accent-300); }
+.bg-accent-400 { background-color: var(--color-accent-400); }
+.bg-accent-500 { background-color: var(--color-accent-500); }
+.bg-accent-600 { background-color: var(--color-accent-600); }
+.bg-accent-700 { background-color: var(--color-accent-700); }
+.bg-accent-800 { background-color: var(--color-accent-800); }
+.bg-accent-900 { background-color: var(--color-accent-900); }
+
+.text-primary { color: var(--color-primary); }
+.text-primary-50 { color: var(--color-primary-50); }
+.text-primary-100 { color: var(--color-primary-100); }
+.text-primary-200 { color: var(--color-primary-200); }
+.text-primary-300 { color: var(--color-primary-300); }
+.text-primary-400 { color: var(--color-primary-400); }
+.text-primary-500 { color: var(--color-primary-500); }
+.text-primary-600 { color: var(--color-primary-600); }
+.text-primary-700 { color: var(--color-primary-700); }
+.text-primary-800 { color: var(--color-primary-800); }
+.text-primary-900 { color: var(--color-primary-900); }
+
+.text-secondary { color: var(--color-secondary); }
+.text-secondary-50 { color: var(--color-secondary-50); }
+.text-secondary-100 { color: var(--color-secondary-100); }
+.text-secondary-200 { color: var(--color-secondary-200); }
+.text-secondary-300 { color: var(--color-secondary-300); }
+.text-secondary-400 { color: var(--color-secondary-400); }
+.text-secondary-500 { color: var(--color-secondary-500); }
+.text-secondary-600 { color: var(--color-secondary-600); }
+.text-secondary-700 { color: var(--color-secondary-700); }
+.text-secondary-800 { color: var(--color-secondary-800); }
+.text-secondary-900 { color: var(--color-secondary-900); }
+
+.text-accent { color: var(--color-accent); }
+.text-accent-50 { color: var(--color-accent-50); }
+.text-accent-100 { color: var(--color-accent-100); }
+.text-accent-200 { color: var(--color-accent-200); }
+.text-accent-300 { color: var(--color-accent-300); }
+.text-accent-400 { color: var(--color-accent-400); }
+.text-accent-500 { color: var(--color-accent-500); }
+.text-accent-600 { color: var(--color-accent-600); }
+.text-accent-700 { color: var(--color-accent-700); }
+.text-accent-800 { color: var(--color-accent-800); }
+.text-accent-900 { color: var(--color-accent-900); }
+
+.border-primary { border-color: var(--color-primary); }
+.border-secondary { border-color: var(--color-secondary); }
+.border-accent { border-color: var(--color-accent); }
+
+.ring-primary { --tw-ring-color: var(--color-primary); }
+.ring-secondary { --tw-ring-color: var(--color-secondary); }
+.ring-accent { --tw-ring-color: var(--color-accent); }
+
+/* Hover states */
+.hover\:bg-primary:hover { background-color: var(--color-primary); }
+.hover\:bg-primary-50:hover { background-color: var(--color-primary-50); }
+.hover\:bg-primary-100:hover { background-color: var(--color-primary-100); }
+.hover\:bg-primary-200:hover { background-color: var(--color-primary-200); }
+.hover\:bg-primary-300:hover { background-color: var(--color-primary-300); }
+.hover\:bg-primary-400:hover { background-color: var(--color-primary-400); }
+.hover\:bg-primary-500:hover { background-color: var(--color-primary-500); }
+.hover\:bg-primary-600:hover { background-color: var(--color-primary-600); }
+.hover\:bg-primary-700:hover { background-color: var(--color-primary-700); }
+.hover\:bg-primary-800:hover { background-color: var(--color-primary-800); }
+.hover\:bg-primary-900:hover { background-color: var(--color-primary-900); }
+
+.hover\:text-primary:hover { color: var(--color-primary); }
+.hover\:text-secondary:hover { color: var(--color-secondary); }
+.hover\:text-accent:hover { color: var(--color-accent); }
+
+/* Focus states */
+.focus\:ring-primary:focus { --tw-ring-color: var(--color-primary); }
+.focus\:ring-secondary:focus { --tw-ring-color: var(--color-secondary); }
+.focus\:ring-accent:focus { --tw-ring-color: var(--color-accent); }
+
+/* Gradient backgrounds */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+}
+
+.bg-gradient-accent {
+  background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
+}
+
+.bg-gradient-secondary {
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+}
