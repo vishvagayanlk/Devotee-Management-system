@@ -6,7 +6,7 @@
  * This script sets up a single temple with admin users.
  * 
  * Usage:
- *   node scripts/setup-single-temple.js --admin-email=admin@temple.lk --admin-password=Admin123! --admin-name="Temple Admin"
+ *   node scripts/setup-single-temple.js --admin-email=your-admin@temple.lk --admin-password=YourSecurePassword123! --admin-name="Temple Admin"
  *   node scripts/setup-single-temple.js --help
  */
 
@@ -71,8 +71,8 @@ Options:
 
 Example:
   node scripts/setup-single-temple.js \\
-    --admin-email=admin@temple.lk \\
-    --admin-password=Admin123! \\
+    --admin-email=your-admin@temple.lk \\
+    --admin-password=YourSecurePassword123! \\
     --admin-name="Temple Administrator" \\
     --temple-name="Sri Lanka Temple" \\
     --temple-description="A beautiful temple for community worship"

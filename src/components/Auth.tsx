@@ -618,15 +618,6 @@ export default function Auth() {
             </div>
           )}
 
-          {isLogin && (
-            <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-md">
-              <p className="text-blue-700 text-xs sm:text-sm">
-                <strong>Test Admin Account:</strong><br />
-                Email: admin@temple.lk<br />
-                Password: Admin123!
-              </p>
-            </div>
-          )}
 
           {/* Debug Section */}
           <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-md">

@@ -40,10 +40,10 @@ The easiest way to set up your temple:
 
 # Or direct command
 node scripts/setup-single-temple.js \
-  --admin-email=admin@temple.lk \
-  --admin-password=Admin123! \
+  --admin-email=your-admin@temple.lk \
+  --admin-password=YourSecurePassword123! \
   --admin-name="Temple Administrator" \
-  --temple-name="Sri Lanka Temple" \
+  --temple-name="Your Temple Name" \
   --temple-description="A beautiful temple for community worship"
 ```
 
@@ -87,8 +87,8 @@ node scripts/run-migration.js supabase/migrations/20250127050000_remove_multi_te
 ### **2. Create Admin User**
 ```bash
 node scripts/setup-single-temple.js \
-  --admin-email=admin@temple.lk \
-  --admin-password=Admin123! \
+  --admin-email=your-admin@temple.lk \
+  --admin-password=YourSecurePassword123! \
   --admin-name="Temple Administrator"
 ```
 

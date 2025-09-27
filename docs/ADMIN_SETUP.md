@@ -49,7 +49,7 @@ This guide explains how to manage temple administrators, including removing test
    node scripts/admin-manager.js create
    
    # Remove specific admin
-   node scripts/admin-manager.js remove --email=admin@temple.lk
+   node scripts/admin-manager.js remove --email=your-admin@temple.lk
    
    # List all admins
    node scripts/admin-manager.js list
@@ -76,7 +76,7 @@ This guide explains how to manage temple administrators, including removing test
 | Command | Purpose | Options |
 |---------|---------|---------|
 | `create` | Create new admin | Interactive prompts |
-| `remove` | Remove admin | `--email=admin@temple.lk` |
+| `remove` | Remove admin | `--email=your-admin@temple.lk` |
 | `list` | List all admins | None |
 | `cleanup` | Remove test accounts | None |
 

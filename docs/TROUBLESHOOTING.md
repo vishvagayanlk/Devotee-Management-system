@@ -71,8 +71,8 @@ The error "Database error saving new user" is likely caused by the `create_templ
 ### 6. Test with Admin Account
 
 Use the test admin account to verify the system works:
-- Email: `admin@temple.lk`
-- Password: `Admin123!`
+- Email: `your-admin@temple.lk`
+- Password: `YourSecurePassword123!`
 
 ### 7. Check Browser Console
 
