@@ -323,21 +323,72 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
             .single();
           
           if (minimalError) {
-            console.log('Minimal profile creation also failed, creating mock profile...');
-            // Create a mock profile object for the frontend
-            newProfile = {
-              id: user.id,
-              clerk_id: user.id,
-              email: user.primaryEmailAddress?.emailAddress || '',
-              full_name: user.fullName || '',
-              is_approved: false,
-              status: 'pending' as const,
-              role: 'devotee' as const,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            };
-            createError = null;
-            console.log('Mock profile created automatically:', newProfile);
+            console.log('Minimal profile creation also failed, checking for existing admin profile...');
+            
+            // Check if this is an admin email and try to find existing admin profile
+            const isAdminEmail = user.primaryEmailAddress?.emailAddress === 'admin@temple.com';
+            if (isAdminEmail) {
+              console.log('Admin email detected, looking for existing admin profile...');
+              const { data: existingAdminProfile, error: adminError } = await supabase
+                .from('user_profiles')
+                .select('*')
+                .eq('email', user.primaryEmailAddress?.emailAddress)
+                .single();
+              
+              if (!adminError && existingAdminProfile) {
+                console.log('Found existing admin profile, updating clerk_id...');
+                const { error: updateError } = await supabase
+                  .from('user_profiles')
+                  .update({ 
+                    clerk_id: user.id,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', existingAdminProfile.id);
+                
+                if (updateError) {
+                  console.error('Error updating admin profile clerk_id:', updateError);
+                } else {
+                  console.log('Successfully updated admin profile with Clerk ID');
+                  existingAdminProfile.clerk_id = user.id;
+                }
+                
+                newProfile = existingAdminProfile;
+                createError = null;
+                console.log('Using existing admin profile:', newProfile);
+              } else {
+                console.log('No existing admin profile found, creating admin mock profile...');
+                // Create a mock admin profile for the frontend
+                newProfile = {
+                  id: user.id,
+                  clerk_id: user.id,
+                  email: user.primaryEmailAddress?.emailAddress || '',
+                  full_name: user.fullName || 'Temple Administrator',
+                  is_approved: true,
+                  status: 'approved' as const,
+                  role: 'admin' as const,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                };
+                createError = null;
+                console.log('Admin mock profile created:', newProfile);
+              }
+            } else {
+              console.log('Not an admin email, creating regular mock profile...');
+              // Create a mock profile object for the frontend
+              newProfile = {
+                id: user.id,
+                clerk_id: user.id,
+                email: user.primaryEmailAddress?.emailAddress || '',
+                full_name: user.fullName || '',
+                is_approved: false,
+                status: 'pending' as const,
+                role: 'devotee' as const,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+              createError = null;
+              console.log('Mock profile created automatically:', newProfile);
+            }
           } else {
             newProfile = minimalProfile;
             createError = null;
@@ -396,19 +447,65 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
         const isAdminEmail = user.primaryEmailAddress?.emailAddress === 'admin@temple.com';
         console.log('Is admin email:', isAdminEmail);
         
-        const mockProfile = {
-          id: user.id,
-          clerk_id: user.id,
-          email: user.primaryEmailAddress?.emailAddress || '',
-          full_name: user.fullName || '',
-          is_approved: isAdminEmail, // Set to true for admin email
-          status: isAdminEmail ? 'approved' as const : 'pending' as const,
-          role: isAdminEmail ? 'admin' as const : 'devotee' as const,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        setUserProfile(mockProfile);
-        console.log('Mock profile created:', mockProfile);
+        if (isAdminEmail) {
+          // Try to find existing admin profile first
+          console.log('Admin email detected, looking for existing admin profile...');
+          const { data: existingAdminProfile, error: adminError } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('email', user.primaryEmailAddress?.emailAddress)
+            .single();
+          
+          if (!adminError && existingAdminProfile) {
+            console.log('Found existing admin profile, updating clerk_id...');
+            const { error: updateError } = await supabase
+              .from('user_profiles')
+              .update({ 
+                clerk_id: user.id,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', existingAdminProfile.id);
+            
+            if (updateError) {
+              console.error('Error updating admin profile clerk_id:', updateError);
+            } else {
+              console.log('Successfully updated admin profile with Clerk ID');
+              existingAdminProfile.clerk_id = user.id;
+            }
+            
+            setUserProfile(existingAdminProfile);
+            console.log('Using existing admin profile:', existingAdminProfile);
+          } else {
+            console.log('No existing admin profile found, creating admin mock profile...');
+            const mockProfile = {
+              id: user.id,
+              clerk_id: user.id,
+              email: user.primaryEmailAddress?.emailAddress || '',
+              full_name: user.fullName || 'Temple Administrator',
+              is_approved: true,
+              status: 'approved' as const,
+              role: 'admin' as const,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+            setUserProfile(mockProfile);
+            console.log('Admin mock profile created:', mockProfile);
+          }
+        } else {
+          const mockProfile = {
+            id: user.id,
+            clerk_id: user.id,
+            email: user.primaryEmailAddress?.emailAddress || '',
+            full_name: user.fullName || '',
+            is_approved: false,
+            status: 'pending' as const,
+            role: 'devotee' as const,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          setUserProfile(mockProfile);
+          console.log('Mock profile created:', mockProfile);
+        }
       }
       
       setIsProfileLoaded(true);
