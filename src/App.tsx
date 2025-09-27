@@ -7,7 +7,6 @@ import { ClerkAuthProvider, useClerkAuth } from './contexts/ClerkAuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContextFallback';
 import ClerkAuth from './components/ClerkAuth';
-import ProfileDebugger from './components/ProfileDebugger';
 import OnboardingDebugger from './components/OnboardingDebugger';
 import OnboardingReset from './components/OnboardingReset';
 import PasswordReset from './components/PasswordReset';
@@ -18,6 +17,7 @@ import HandshakeHandler from './components/HandshakeHandler';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import SignUpPage from './components/SignUpPage';
+import ProfileDebugger from './components/ProfileDebugger';
 
 // Lazy load components for better performance
 const DashboardWrapper = lazy(() => import('./components/DashboardWrapper'));
@@ -159,6 +159,7 @@ function AppContent() {
           <Route path="/debug" element={<ProfileDebugger />} />
           <Route path="/onboarding-debug" element={<OnboardingDebugger />} />
           <Route path="/onboarding-reset" element={<OnboardingReset />} />
+          <Route path="/profile-debug" element={<ProfileDebugger />} />
           <Route path="*" element={<ClerkAuth mode="signin" />} />
         </Routes>
       </div>

@@ -39,6 +39,7 @@ interface ClerkAuthContextType {
   checkProfileCompletion: () => Promise<boolean>;
   markOnboardingComplete: () => void;
   createMockProfileForPendingUser: () => void;
+  forceCreateProfile: () => Promise<void>;
 }
 
 const ClerkAuthContext = createContext<ClerkAuthContextType | undefined>(undefined);
@@ -675,6 +676,19 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
     }
   };
 
+  const forceCreateProfile = async () => {
+    if (!user) {
+      console.log('No user found for force profile creation');
+      return;
+    }
+    
+    console.log('🔄 Force creating profile for user:', user.id);
+    setUserProfile(null);
+    setIsProfileLoaded(false);
+    setIsCreatingProfile(true);
+    await createOrUpdateUserProfile();
+  };
+
   const createMockProfileForPendingUser = () => {
     if (!user) return;
     
@@ -729,6 +743,7 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
     checkProfileCompletion,
     markOnboardingComplete,
     createMockProfileForPendingUser,
+    forceCreateProfile,
   };
 
   return (

@@ -46,7 +46,7 @@ const DashboardCard = memo(({ card, index }: { card: any; index: number }) => {
 DashboardCard.displayName = 'DashboardCard';
 
 export default function Dashboard() {
-  const { userProfile } = useClerkAuth();
+  const { userProfile, forceCreateProfile } = useClerkAuth();
   const profile = userProfile;
   const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
   const isCommittee = profile?.role === 'admin' || profile?.role === 'committee' || profile?.role === 'super_admin';
@@ -323,6 +323,36 @@ export default function Dashboard() {
           </p>
         </div>
         
+        {/* Debug Section - Only show in development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-blue-800">Debug: Profile Status</h3>
+                <p className="text-sm text-blue-700">
+                  Profile: {userProfile ? 'Loaded' : 'Missing'} | 
+                  Role: {profile?.role || 'Unknown'} | 
+                  Approved: {profile?.is_approved ? 'Yes' : 'No'}
+                </p>
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => forceCreateProfile()}
+                  className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Force Create Profile
+                </button>
+                <button
+                  onClick={() => window.location.href = '/profile-debug'}
+                  className="bg-gray-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors"
+                >
+                  Debug Page
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Pending Approval Message - Only show for non-admin users */}
         {profile && !profile.is_approved && !isAdmin && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
