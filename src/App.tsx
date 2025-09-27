@@ -17,6 +17,9 @@ import HandshakeDebug from './components/HandshakeDebug';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import ClerkIntegrationTest from './components/ClerkIntegrationTest';
+import SignUpTest from './components/SignUpTest';
+import SignUpPage from './components/SignUpPage';
+import RouteTest from './components/RouteTest';
 
 // Lazy load components for better performance
 const DashboardWrapper = lazy(() => import('./components/DashboardWrapper'));
@@ -46,6 +49,12 @@ function AppContent() {
     isSignedIn,
     userProfile: !!userProfile
   });
+
+  // Additional debugging for sign-up flow
+  if (window.location.pathname === '/sign-up') {
+    console.log('AppContent: Sign-up page requested');
+    console.log('AppContent: isLoaded:', isLoaded, 'isSignedIn:', isSignedIn);
+  }
 
   // Show timeout message if loading takes too long
   React.useEffect(() => {
@@ -128,13 +137,16 @@ function AppContent() {
       >
         <Routes>
           <Route path="/sign-in" element={<ClerkAuth mode="signin" />} />
-          <Route path="/sign-up" element={<ClerkAuth mode="signup" />} />
+          <Route path="/sign-up" element={<SignUpPage />} />
           <Route path="/signup-success" element={<SignupSuccess />} />
           <Route path="/sso-callback" element={<SSOCallback />} />
           <Route path="/debug" element={<ProfileDebugger />} />
           <Route path="/onboarding-debug" element={<OnboardingDebugger />} />
           <Route path="/onboarding-reset" element={<OnboardingReset />} />
           <Route path="/clerk-test" element={<ClerkIntegrationTest />} />
+          <Route path="/debug-auth" element={<SignUpTest />} />
+          <Route path="/test-signup" element={<SignUpPage />} />
+          <Route path="/route-test" element={<RouteTest />} />
           <Route path="*" element={<ClerkAuth mode="signin" />} />
         </Routes>
       </div>
@@ -371,6 +383,11 @@ function AppContent() {
 export default function App() {
   const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
+  // Debug logging
+  console.log('App - Clerk publishable key:', clerkPublishableKey ? 'Present' : 'Missing');
+  console.log('App - Current URL:', window.location.href);
+  console.log('App - Current pathname:', window.location.pathname);
+
   // Handshake detection is now handled by Clerk's built-in mechanisms
 
   if (!clerkPublishableKey) {
@@ -379,6 +396,14 @@ export default function App() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-red-800 mb-4">Configuration Error</h1>
           <p className="text-red-600">Clerk publishable key is missing. Please check your environment variables.</p>
+          <div className="mt-4 p-4 bg-yellow-100 rounded-lg">
+            <p className="text-sm text-yellow-800">
+              <strong>Debug Info:</strong><br/>
+              Current URL: {window.location.href}<br/>
+              Current pathname: {window.location.pathname}<br/>
+              Environment: {import.meta.env.MODE}
+            </p>
+          </div>
         </div>
       </div>
     );
