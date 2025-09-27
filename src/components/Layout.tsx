@@ -24,8 +24,8 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const { userProfile, signOut } = useClerkAuth();
-  const isAdmin = userProfile?.role === 'admin';
-  const isCommittee = userProfile?.role === 'committee';
+  const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'super_admin';
+  const isCommittee = userProfile?.role === 'committee' || userProfile?.role === 'admin' || userProfile?.role === 'super_admin';
   const { templeSettings } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const [sidebarOpen, setSidebarOpen] = useState(false);

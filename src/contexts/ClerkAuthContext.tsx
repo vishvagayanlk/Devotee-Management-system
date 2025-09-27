@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import { supabase } from '../lib/supabase';
 import { errorTracking } from '../lib/monitoring';
-import { isAdminEmail, getAdminRole, getAdminStatus, getAdminApproval } from '../config/adminConfig';
+import { isAdminEmail, getAdminRole } from '../config/adminConfig';
 
 interface UserProfile {
   id: string;
@@ -178,8 +178,7 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
             clerk_id: emailProfile.clerk_id,
             email: emailProfile.email,
             role: emailProfile.role,
-            is_approved: emailProfile.is_approved,
-            status: emailProfile.status
+            is_approved: emailProfile.is_approved
           });
           existingProfile = emailProfile;
           fetchError = null;
@@ -204,60 +203,8 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
               clerk_id: existingProfile.clerk_id,
               email: existingProfile.email,
               role: existingProfile.role,
-              is_approved: existingProfile.is_approved,
-              status: existingProfile.status
+              is_approved: existingProfile.is_approved
             });
-          }
-        } else {
-          console.log('No profile found by email either');
-          if (emailError) {
-            console.error('Email lookup error:', emailError);
-          }
-          
-          // Special case: If this is an admin email and no profile found, create one immediately
-          const isAdminEmail = user.primaryEmailAddress?.emailAddress === 'admin@temple.com';
-          if (isAdminEmail) {
-            console.log('Admin email detected, creating admin profile immediately...');
-            const adminProfile = {
-              clerk_id: user.id,
-              email: user.primaryEmailAddress?.emailAddress || '',
-              full_name: user.fullName || 'Temple Administrator',
-              is_approved: true,
-              status: 'approved' as const,
-              role: 'admin' as const,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            };
-            
-            console.log('Creating admin profile with data:', adminProfile);
-            
-            const { data: newAdminProfile, error: createAdminError } = await supabase
-              .from('user_profiles')
-              .insert(adminProfile)
-              .select()
-              .single();
-            
-            if (createAdminError) {
-              console.error('Error creating admin profile:', createAdminError);
-              // Create mock profile as fallback
-              existingProfile = {
-                id: user.id,
-                clerk_id: user.id,
-                email: user.primaryEmailAddress?.emailAddress || '',
-                full_name: user.fullName || 'Temple Administrator',
-                is_approved: true,
-                status: 'approved' as const,
-                role: 'admin' as const,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              };
-              fetchError = null;
-              console.log('Created mock admin profile:', existingProfile);
-            } else {
-              existingProfile = newAdminProfile;
-              fetchError = null;
-              console.log('Admin profile created successfully:', existingProfile);
-            }
           }
         }
       }
@@ -296,404 +243,202 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
           clerk_id: updatedProfile.clerk_id,
           email: updatedProfile.email,
           role: updatedProfile.role,
-          is_approved: updatedProfile.is_approved,
-          status: updatedProfile.status
+          is_approved: updatedProfile.is_approved
         });
       } else {
         console.log('Creating new profile...');
-        // Create new profile with only the most basic columns that definitely exist
-        const profileData = {
-          clerk_id: user.id,
-          email: user.primaryEmailAddress?.emailAddress || '',
-          full_name: user.fullName || '',
-        };
-
-        // Try to add optional columns if they exist
-        const optionalFields = {
-          is_approved: false,
-          status: 'pending',
-          role: 'devotee',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-
-        // Merge optional fields
-        const fullProfileData = { ...profileData, ...optionalFields };
-
-        console.log('Profile data to insert:', fullProfileData);
-
-        // Try with full data first
-        let { data: newProfile, error: createError } = await supabase
-          .from('user_profiles')
-          .insert(fullProfileData)
-          .select()
-          .single();
-
-        // If that fails, try with minimal data
-        if (createError) {
-          console.log('Full profile creation failed, trying minimal data...');
-          const { data: minimalProfile, error: minimalError } = await supabase
-            .from('user_profiles')
-            .insert(profileData)
-            .select()
-            .single();
-          
-          if (minimalError) {
-            console.log('Minimal profile creation also failed, checking for existing admin profile...');
-            
-            // Check if this is an admin email and try to find existing admin profile
-            const userEmail = user.primaryEmailAddress?.emailAddress || '';
-            const isAdmin = isAdminEmail(userEmail);
-            if (isAdmin) {
-              console.log('Admin email detected, looking for existing admin profile...');
-              const { data: existingAdminProfile, error: adminError } = await supabase
-                .from('user_profiles')
-                .select('*')
-                .eq('email', user.primaryEmailAddress?.emailAddress)
-                .single();
-              
-              if (!adminError && existingAdminProfile) {
-                console.log('Found existing admin profile, updating clerk_id...');
-                const { error: updateError } = await supabase
-                  .from('user_profiles')
-                  .update({ 
-                    clerk_id: user.id,
-                    updated_at: new Date().toISOString()
-                  })
-                  .eq('id', existingAdminProfile.id);
-                
-                if (updateError) {
-                  console.error('Error updating admin profile clerk_id:', updateError);
-                } else {
-                  console.log('Successfully updated admin profile with Clerk ID');
-                  existingAdminProfile.clerk_id = user.id;
-                }
-                
-                newProfile = existingAdminProfile;
-                createError = null;
-                console.log('Using existing admin profile:', newProfile);
-              } else {
-                console.log('No existing admin profile found, creating admin mock profile...');
-                // Create a mock admin profile for the frontend
-                newProfile = {
-                  id: user.id,
-                  clerk_id: user.id,
-                  email: user.primaryEmailAddress?.emailAddress || '',
-                  full_name: user.fullName || 'Temple Administrator',
-                  is_approved: getAdminApproval(userEmail),
-                  status: getAdminStatus(userEmail),
-                  role: getAdminRole(userEmail),
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                };
-                createError = null;
-                console.log('Admin mock profile created:', newProfile);
-              }
-            } else {
-              console.log('Not an admin email, creating regular mock profile...');
-              // Create a mock profile object for the frontend
-              newProfile = {
-                id: user.id,
-                clerk_id: user.id,
-                email: user.primaryEmailAddress?.emailAddress || '',
-                full_name: user.fullName || '',
-                is_approved: false,
-                status: 'pending' as const,
-                role: 'devotee' as const,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              };
-              createError = null;
-              console.log('Mock profile created automatically:', newProfile);
-            }
-          } else {
-            newProfile = minimalProfile;
-            createError = null;
-          }
-        }
-
-        console.log('Profile creation result:', { newProfile, createError });
-
-        if (createError) {
-          console.error('Error creating profile:', createError);
-          throw createError;
-        } else {
-          setUserProfile(newProfile);
-          console.log('Profile created successfully');
-          console.log('Set new profile data:', {
-            id: newProfile.id,
-            clerk_id: newProfile.clerk_id,
-            email: newProfile.email,
-            role: newProfile.role,
-            is_approved: newProfile.is_approved,
-            status: newProfile.status
-          });
-          
-          // Create user profile details entry
-          await createUserProfileDetails(newProfile.id);
-        }
-      }
-
-      // Set a flag in localStorage to ensure it persists
-      localStorage.setItem('profile_completion_forced', 'true');
-      localStorage.setItem('profile_completion_timestamp', Date.now().toString());
-      
-      console.log('Profile setup completed successfully');
-      clearTimeout(profileCreationTimeout);
-      setIsProfileLoaded(true);
-      setIsCreatingProfile(false);
-    } catch (error) {
-      console.error('Error in createOrUpdateUserProfile:', error);
-      console.error('Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        userId: user?.id
-      });
-      
-      errorTracking.captureException(error as Error, { 
-        context: 'createOrUpdateUserProfile',
-        userId: user?.id,
-        userEmail: user?.primaryEmailAddress?.emailAddress
-      });
-      
-      // Set profile loaded even on error to prevent infinite loading
-      clearTimeout(profileCreationTimeout);
-      
-      // Create a mock profile for pending approval users if database fails
-      if (user) {
-        console.log('Creating mock profile for pending approval user due to database error');
         
         // Check if this is an admin email
         const userEmail = user.primaryEmailAddress?.emailAddress || '';
         const isAdmin = isAdminEmail(userEmail);
         
-        if (isAdmin) {
-          // Try to find existing admin profile first
-          console.log('Admin email detected, looking for existing admin profile...');
-          const { data: existingAdminProfile, error: adminError } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('email', user.primaryEmailAddress?.emailAddress)
-            .single();
-          
-          if (!adminError && existingAdminProfile) {
-            console.log('Found existing admin profile, updating clerk_id...');
-            const { error: updateError } = await supabase
-              .from('user_profiles')
-              .update({ 
-                clerk_id: user.id,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', existingAdminProfile.id);
-            
-            if (updateError) {
-              console.error('Error updating admin profile clerk_id:', updateError);
-            } else {
-              console.log('Successfully updated admin profile with Clerk ID');
-              existingAdminProfile.clerk_id = user.id;
-            }
-            
-            setUserProfile(existingAdminProfile);
-            console.log('Using existing admin profile:', existingAdminProfile);
-          } else {
-            console.log('No existing admin profile found, creating admin mock profile...');
-            const mockProfile = {
-              id: user.id,
-              clerk_id: user.id,
-              email: user.primaryEmailAddress?.emailAddress || '',
-              full_name: user.fullName || 'Temple Administrator',
-              is_approved: getAdminApproval(userEmail),
-              status: getAdminStatus(userEmail),
-              role: getAdminRole(userEmail),
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            };
-            setUserProfile(mockProfile);
-            console.log('Admin mock profile created:', mockProfile);
-          }
-        } else {
+        // Create profile data matching the actual database schema
+        const profileData = {
+          clerk_id: user.id,
+          email: userEmail,
+          full_name: user.fullName || '',
+          is_approved: isAdmin, // Admin emails are automatically approved
+          role: isAdmin ? getAdminRole(userEmail) : 'devotee',
+          status: isAdmin ? 'approved' as const : 'pending' as const,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        console.log('Profile data to insert:', profileData);
+
+        const { data: newProfile, error: createError } = await supabase
+          .from('user_profiles')
+          .insert(profileData)
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating profile:', createError);
+          // Create mock profile as fallback
           const mockProfile = {
             id: user.id,
             clerk_id: user.id,
-            email: user.primaryEmailAddress?.emailAddress || '',
+            email: userEmail,
             full_name: user.fullName || '',
-            is_approved: false,
-            status: 'pending' as const,
-            role: 'devotee' as const,
+            is_approved: isAdmin,
+            role: isAdmin ? getAdminRole(userEmail) : 'devotee',
+            status: isAdmin ? 'approved' as const : 'pending' as const,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };
           setUserProfile(mockProfile);
-          console.log('Mock profile created:', mockProfile);
+          console.log('Mock profile created as fallback:', mockProfile);
+        } else {
+          setUserProfile(newProfile);
+          console.log('Profile created successfully:', newProfile);
         }
       }
-      
+
+      clearTimeout(profileCreationTimeout);
       setIsProfileLoaded(true);
       setIsCreatingProfile(false);
+      
+    } catch (error) {
+      console.error('Error in createOrUpdateUserProfile:', error);
+      errorTracking.captureException(error as Error);
+      clearTimeout(profileCreationTimeout);
+      setIsProfileLoaded(true);
+      setIsCreatingProfile(false);
+      
+      // Create a mock profile as fallback
+      const userEmail = user.primaryEmailAddress?.emailAddress || '';
+      const isAdmin = isAdminEmail(userEmail);
+      
+      const mockProfile = {
+        id: user.id,
+        clerk_id: user.id,
+        email: userEmail,
+        full_name: user.fullName || '',
+        is_approved: isAdmin,
+        role: isAdmin ? getAdminRole(userEmail) : 'devotee',
+        status: isAdmin ? 'approved' as const : 'pending' as const,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      
+      setUserProfile(mockProfile);
+      console.log('Mock profile created as fallback:', mockProfile);
     }
   };
 
   const signOut = async () => {
     try {
+      console.log('Signing out user...');
       await clerkSignOut();
       setUserProfile(null);
       setIsProfileLoaded(false);
+      setIsProfileComplete(false);
+      console.log('User signed out successfully');
     } catch (error) {
       console.error('Error signing out:', error);
-      errorTracking.captureException(error as Error, { context: 'signOut' });
+      errorTracking.captureException(error as Error);
     }
   };
 
   const refreshUserProfile = async () => {
     if (!user) return;
     
-    try {
-      const { data: profile, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('clerk_id', user.id)
-        .single();
-
-      if (error) throw error;
-      setUserProfile(profile);
-    } catch (error) {
-      console.error('Error refreshing user profile:', error);
-      errorTracking.captureException(error as Error, { context: 'refreshUserProfile' });
-    }
+    console.log('Refreshing user profile...');
+    setIsCreatingProfile(true);
+    await createOrUpdateUserProfile();
   };
 
   const approveUser = async (userId: string) => {
     try {
+      console.log('Approving user:', userId);
       const { error } = await supabase
         .from('user_profiles')
         .update({ 
           is_approved: true,
-          status: 'approved',
           updated_at: new Date().toISOString()
         })
         .eq('id', userId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error approving user:', error);
+        throw error;
+      }
+
+      console.log('User approved successfully');
       
-      // Refresh the profile if it's the current user
-      if (userProfile?.id === userId) {
+      // Refresh the current user's profile if it's the same user
+      if (userProfile && userProfile.id === userId) {
         await refreshUserProfile();
       }
     } catch (error) {
-      console.error('Error approving user:', error);
-      errorTracking.captureException(error as Error, { context: 'approveUser', userId });
+      console.error('Error in approveUser:', error);
+      errorTracking.captureException(error as Error);
       throw error;
     }
   };
 
   const rejectUser = async (userId: string) => {
     try {
+      console.log('Rejecting user:', userId);
       const { error } = await supabase
         .from('user_profiles')
         .update({ 
           is_approved: false,
-          status: 'rejected',
           updated_at: new Date().toISOString()
         })
         .eq('id', userId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error rejecting user:', error);
+        throw error;
+      }
+
+      console.log('User rejected successfully');
       
-      // Refresh the profile if it's the current user
-      if (userProfile?.id === userId) {
+      // Refresh the current user's profile if it's the same user
+      if (userProfile && userProfile.id === userId) {
         await refreshUserProfile();
       }
     } catch (error) {
-      console.error('Error rejecting user:', error);
-      errorTracking.captureException(error as Error, { context: 'rejectUser', userId });
+      console.error('Error in rejectUser:', error);
+      errorTracking.captureException(error as Error);
       throw error;
     }
   };
 
   const updateUserProfile = async (updates: Partial<UserProfile>) => {
     if (!userProfile) return;
-
+    
     try {
-      const { data: updatedProfile, error } = await supabase
+      console.log('Updating user profile:', updates);
+      const { data, error } = await supabase
         .from('user_profiles')
-        .update({
+        .update({ 
           ...updates,
-          updated_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .eq('id', userProfile.id)
         .select()
         .single();
 
-      if (error) throw error;
-      
-      console.log('Profile updated successfully:', updatedProfile);
-      setUserProfile(updatedProfile);
-      
-      // Force profile completion to true after successful update
-      // This prevents the onboarding loop
-      console.log('Setting profile completion to true');
-      setIsProfileComplete(true);
-      
-      // Also set a flag in localStorage to ensure it persists
-      localStorage.setItem('profile_completion_forced', 'true');
-      localStorage.setItem('profile_completion_timestamp', Date.now().toString());
-      
+      if (error) {
+        console.error('Error updating user profile:', error);
+        throw error;
+      }
+
+      setUserProfile(data);
+      console.log('User profile updated successfully');
     } catch (error) {
-      console.error('Error updating user profile:', error);
-      errorTracking.captureException(error as Error, { context: 'updateUserProfile', updates });
+      console.error('Error in updateUserProfile:', error);
+      errorTracking.captureException(error as Error);
       throw error;
     }
-  };
-
-  const markOnboardingComplete = () => {
-    console.log('Manually marking onboarding as complete');
-    setIsProfileComplete(true);
-    localStorage.setItem('onboarding_completed', 'true');
-    localStorage.setItem('onboarding_completed_timestamp', Date.now().toString());
-  };
-
-  const createUserProfileDetails = async (userId: string) => {
-    try {
-      console.log('Creating user profile details for user:', userId);
-      
-      const { error } = await supabase
-        .from('user_profile_details')
-        .insert({
-          user_id: userId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
-
-      if (error) {
-        console.warn('Could not create user profile details:', error);
-        // Don't throw error - this is optional
-      } else {
-        console.log('User profile details created successfully');
-      }
-    } catch (error) {
-      console.warn('User profile details creation failed:', error);
-      // Don't throw error - this is optional
-    }
-  };
-
-  const forceCreateProfile = async () => {
-    if (!user) {
-      console.log('No user found for force profile creation');
-      return;
-    }
-    
-    console.log('🔄 Force creating profile for user:', user.id);
-    setUserProfile(null);
-    setIsProfileLoaded(false);
-    setIsCreatingProfile(true);
-    await createOrUpdateUserProfile();
   };
 
   const createMockProfileForPendingUser = () => {
     if (!user) return;
     
-    console.log('Creating mock profile for pending approval user');
-    
+    console.log('Creating mock profile for pending user...');
     const userEmail = user.primaryEmailAddress?.emailAddress || '';
     const isAdmin = isAdminEmail(userEmail);
     
@@ -701,10 +446,10 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
       id: user.id,
       clerk_id: user.id,
       email: userEmail,
-      full_name: user.fullName || (isAdmin ? 'Temple Administrator' : ''),
-      is_approved: getAdminApproval(userEmail),
-      status: getAdminStatus(userEmail),
-      role: getAdminRole(userEmail),
+      full_name: user.fullName || '',
+      is_approved: isAdmin,
+      role: isAdmin ? getAdminRole(userEmail) : 'devotee',
+      status: isAdmin ? 'approved' as const : 'pending' as const,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -712,8 +457,15 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
     setUserProfile(mockProfile);
     setIsProfileLoaded(true);
     setIsCreatingProfile(false);
-    
     console.log('Mock profile created for pending user:', mockProfile);
+  };
+
+  const forceCreateProfile = async () => {
+    if (!user) return;
+    
+    console.log('Force creating profile...');
+    setIsCreatingProfile(true);
+    await createOrUpdateUserProfile();
   };
 
   const checkProfileCompletion = async (): Promise<boolean> => {
@@ -727,6 +479,11 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
     // Always allow access to dashboard, users can complete profile later
     setIsProfileComplete(true);
     return true;
+  };
+
+  const markOnboardingComplete = () => {
+    console.log('Marking onboarding as complete');
+    setIsProfileComplete(true);
   };
 
   const value: ClerkAuthContextType = {

@@ -32,7 +32,7 @@ export type Database = {
           full_name: string;
           first_name: string | null;
           last_name: string | null;
-          role: 'devotee' | 'committee' | 'admin';
+          role: 'devotee' | 'committee' | 'admin' | 'super_admin';
           status: 'pending' | 'approved' | 'rejected';
           is_approved: boolean;
           nic_number: string | null;
@@ -56,7 +56,7 @@ export type Database = {
           full_name: string;
           first_name?: string | null;
           last_name?: string | null;
-          role?: 'devotee' | 'committee' | 'admin';
+          role?: 'devotee' | 'committee' | 'admin' | 'super_admin';
           status?: 'pending' | 'approved' | 'rejected';
           is_approved?: boolean;
           nic_number?: string | null;
@@ -77,6 +77,7 @@ export type Database = {
           full_name?: string;
           first_name?: string | null;
           last_name?: string | null;
+          role?: 'devotee' | 'committee' | 'admin' | 'super_admin';
           nic_number?: string | null;
           address?: string | null;
           phone?: string | null;
