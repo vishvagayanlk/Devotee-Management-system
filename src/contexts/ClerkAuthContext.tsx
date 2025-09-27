@@ -133,13 +133,58 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
 
       // Check if user profile exists
       console.log('Checking for existing profile...');
-      const { data: existingProfile, error: fetchError } = await supabase
+      let { data: existingProfile, error: fetchError } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('clerk_id', user.id)
         .single();
 
       console.log('Profile fetch result:', { existingProfile, fetchError });
+
+      // If no profile found by clerk_id, try to find by email as fallback
+      if (fetchError && fetchError.code === 'PGRST116') {
+        console.log('No profile found by clerk_id, trying email lookup...');
+        const { data: emailProfile, error: emailError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('email', user.primaryEmailAddress?.emailAddress)
+          .single();
+        
+        if (!emailError && emailProfile) {
+          console.log('Found profile by email, updating clerk_id...');
+          console.log('Email profile data:', {
+            id: emailProfile.id,
+            clerk_id: emailProfile.clerk_id,
+            email: emailProfile.email,
+            role: emailProfile.role,
+            is_approved: emailProfile.is_approved,
+            status: emailProfile.status
+          });
+          existingProfile = emailProfile;
+          fetchError = null;
+          
+          // Update the profile with the correct clerk_id
+          const { error: updateError } = await supabase
+            .from('user_profiles')
+            .update({ clerk_id: user.id })
+            .eq('id', emailProfile.id);
+          
+          if (updateError) {
+            console.error('Error updating clerk_id:', updateError);
+          } else {
+            console.log('Successfully updated clerk_id');
+            existingProfile.clerk_id = user.id;
+            console.log('Updated profile data:', {
+              id: existingProfile.id,
+              clerk_id: existingProfile.clerk_id,
+              email: existingProfile.email,
+              role: existingProfile.role,
+              is_approved: existingProfile.is_approved,
+              status: existingProfile.status
+            });
+          }
+        }
+      }
 
       if (fetchError && fetchError.code !== 'PGRST116') {
         console.error('Error fetching existing profile:', fetchError);
@@ -170,6 +215,14 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
         }
         setUserProfile(updatedProfile);
         console.log('Profile updated successfully');
+        console.log('Set user profile data:', {
+          id: updatedProfile.id,
+          clerk_id: updatedProfile.clerk_id,
+          email: updatedProfile.email,
+          role: updatedProfile.role,
+          is_approved: updatedProfile.is_approved,
+          status: updatedProfile.status
+        });
       } else {
         console.log('Creating new profile...');
         // Create new profile with only the most basic columns that definitely exist
@@ -239,6 +292,14 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
         } else {
           setUserProfile(newProfile);
           console.log('Profile created successfully');
+          console.log('Set new profile data:', {
+            id: newProfile.id,
+            clerk_id: newProfile.clerk_id,
+            email: newProfile.email,
+            role: newProfile.role,
+            is_approved: newProfile.is_approved,
+            status: newProfile.status
+          });
         }
       }
 

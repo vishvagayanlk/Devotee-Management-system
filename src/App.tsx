@@ -228,6 +228,16 @@ function AppContent() {
     );
   }
 
+  // Debug: Log user profile data
+  console.log('App.tsx: User profile data:', {
+    userProfile,
+    isApproved: userProfile?.is_approved,
+    role: userProfile?.role,
+    status: userProfile?.status,
+    isSignedIn,
+    hasUserProfile: !!userProfile
+  });
+
   // If user is authenticated but not approved, show dashboard with limited access
   if (isSignedIn && userProfile && !userProfile.is_approved) {
     return (
