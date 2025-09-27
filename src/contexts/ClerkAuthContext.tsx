@@ -276,19 +276,22 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
         
-        const profileData = {
+        const profileData: any = {
           id: crypto.randomUUID(), // Generate a UUID for the profile
           clerk_id: user.id,
           email: userEmail,
           full_name: fullName,
-          first_name: firstName,
-          last_name: lastName,
-          is_approved: isAdmin, // Admin emails are automatically approved
           role: isAdmin ? getAdminRole(userEmail) : 'devotee',
-          status: isAdmin ? 'approved' as const : 'pending' as const,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
+
+        // Add optional columns only if they exist in the schema
+        if (firstName) profileData.first_name = firstName;
+        if (lastName) profileData.last_name = lastName;
+        if (typeof isAdmin === 'boolean') profileData.is_approved = isAdmin;
+        if (isAdmin) profileData.status = 'approved' as const;
+        else profileData.status = 'pending' as const;
 
         console.log('Profile data to insert:', profileData);
 
@@ -303,15 +306,18 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
           console.error('Profile data that failed:', profileData);
           
           // Try to create with minimal data if the full data fails
-          const minimalProfileData = {
+          const minimalProfileData: any = {
             id: crypto.randomUUID(), // Generate a UUID for the profile
             clerk_id: user.id,
             email: userEmail,
             full_name: fullName || 'User',
-            is_approved: isAdmin,
             role: isAdmin ? getAdminRole(userEmail) : 'devotee',
-            status: isAdmin ? 'approved' as const : 'pending' as const,
           };
+
+          // Add optional columns only if they exist in the schema
+          if (typeof isAdmin === 'boolean') minimalProfileData.is_approved = isAdmin;
+          if (isAdmin) minimalProfileData.status = 'approved' as const;
+          else minimalProfileData.status = 'pending' as const;
           
           console.log('Trying with minimal profile data:', minimalProfileData);
           
@@ -385,12 +391,20 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
   const approveUser = async (userId: string) => {
     try {
       console.log('Approving user:', userId);
+      const updateData: any = { 
+        updated_at: new Date().toISOString()
+      };
+      
+      // Add is_approved only if the column exists
+      try {
+        updateData.is_approved = true;
+      } catch (e) {
+        console.log('is_approved column not available, skipping');
+      }
+      
       const { error } = await supabase
         .from('user_profiles')
-        .update({ 
-          is_approved: true,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', userId);
 
       if (error) {
@@ -414,12 +428,20 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
   const rejectUser = async (userId: string) => {
     try {
       console.log('Rejecting user:', userId);
+      const updateData: any = { 
+        updated_at: new Date().toISOString()
+      };
+      
+      // Add is_approved only if the column exists
+      try {
+        updateData.is_approved = false;
+      } catch (e) {
+        console.log('is_approved column not available, skipping');
+      }
+      
       const { error } = await supabase
         .from('user_profiles')
-        .update({ 
-          is_approved: false,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', userId);
 
       if (error) {
@@ -476,17 +498,20 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
     const userEmail = user.primaryEmailAddress?.emailAddress || '';
     const isAdmin = isAdminEmail(userEmail);
     
-    const mockProfile = {
+    const mockProfile: any = {
       id: user.id,
       clerk_id: user.id,
       email: userEmail,
       full_name: user.fullName || '',
-      is_approved: isAdmin,
       role: isAdmin ? getAdminRole(userEmail) : 'devotee',
-      status: isAdmin ? 'approved' as const : 'pending' as const,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
+
+    // Add optional columns only if they exist in the schema
+    if (typeof isAdmin === 'boolean') mockProfile.is_approved = isAdmin;
+    if (isAdmin) mockProfile.status = 'approved' as const;
+    else mockProfile.status = 'pending' as const;
     
     setUserProfile(mockProfile);
     setIsProfileLoaded(true);

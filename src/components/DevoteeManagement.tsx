@@ -11,7 +11,7 @@ type Group = Database['public']['Tables']['groups']['Row'];
 type TempleEvent = Database['public']['Tables']['temple_events']['Row'];
 
 export default function DevoteeManagement() {
-  const { userProfile, profileRefreshTrigger } = useClerkAuth();
+  const { userProfile, profileRefreshTrigger, refreshUserProfile } = useClerkAuth();
   const isCommittee = userProfile?.role === 'committee' || userProfile?.role === 'admin' || userProfile?.role === 'super_admin';
   
   const [devotees, setDevotees] = useState<DevoteeProfile[]>([]);
@@ -86,17 +86,7 @@ export default function DevoteeManagement() {
   const [deletingDevotee, setDeletingDevotee] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Debug logging in useEffect to avoid accessing state before initialization
-  useEffect(() => {
-    console.log('DevoteeManagement: Component state', {
-      userProfile,
-      isCommittee,
-      userRole: userProfile?.role,
-      hasUserProfile: !!userProfile,
-      loading
-    });
-  }, [userProfile, isCommittee, loading]);
-
+  // Main data fetching effect
   useEffect(() => {
     console.log('DevoteeManagement: useEffect triggered', {
       isCommittee,
@@ -117,7 +107,7 @@ export default function DevoteeManagement() {
 
   // Filter and sort devotees whenever filters change
   useEffect(() => {
-    if (!devotees || !Array.isArray(devotees) || devotees.length === 0) {
+    if (!devotees || !Array.isArray(devotees)) {
       setFilteredDevotees([]);
       return;
     }
@@ -281,12 +271,28 @@ export default function DevoteeManagement() {
 
   const handleStatusUpdate = async (devoteeId: string, newStatus: 'approved' | 'rejected') => {
     try {
+      const updateData: any = {
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Also update is_approved field to match the status
+      updateData.is_approved = newStatus === 'approved';
+      
       const { error } = await supabase
         .from('user_profiles')
-        .update({ status: newStatus })
+        .update(updateData)
         .eq('id', devoteeId);
 
       if (error) throw error;
+      
+      // If this is the current user being approved, refresh their profile
+      if (userProfile && userProfile.id === devoteeId) {
+        console.log('Current user status updated, refreshing profile...');
+        // Trigger a profile refresh
+        await refreshUserProfile();
+      }
+      
       await fetchDevotees();
     } catch (error) {
       console.error('Error updating devotee status:', error);

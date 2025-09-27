@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, Search, Save, X, StickyNote } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { supabase, Database } from '../lib/supabase';
 
 type Note = Database['public']['Tables']['notes']['Row'];
 
 export default function Notes() {
-  const { profile, isAdmin } = useAuth();
+  const { userProfile } = useClerkAuth();
+  const profile = userProfile;
+  const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'super_admin';
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Palette, Building2, Upload, Eye, RefreshCw, Check, X } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase, Database } from '../lib/supabase';
 
@@ -8,7 +8,9 @@ type TempleSettings = Database['public']['Tables']['temple_settings']['Row'];
 type Theme = Database['public']['Tables']['themes']['Row'];
 
 export default function TempleSettings() {
-  const { profile, isAdmin } = useAuth();
+  const { userProfile } = useClerkAuth();
+  const profile = userProfile;
+  const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'super_admin';
   const { templeSettings, themes, updateTempleSettings, applyTheme, refreshSettings } = useTheme();
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);

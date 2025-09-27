@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, Calendar as CalendarIcon, Clock, Save, X } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { supabase, Database } from '../lib/supabase';
 
 type CalendarEvent = Database['public']['Tables']['calendar_events']['Row'];
 
 export default function Calendar() {
-  const { profile, isAdmin } = useAuth();
+  const { userProfile } = useClerkAuth();
+  const profile = userProfile;
+  const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'super_admin';
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditor, setShowEditor] = useState(false);

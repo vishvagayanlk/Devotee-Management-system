@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit3, Trash2, Calendar as CalendarIcon, Clock, Save, X, MapPin, Users, Building2, Check, RefreshCw } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect } from 'react';
+import { Plus, Edit3, Trash2, Calendar as CalendarIcon, Clock, Save, X, MapPin, Users, Check, RefreshCw } from 'lucide-react';
+import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { supabase, Database } from '../lib/supabase';
 
 type TempleEvent = Database['public']['Tables']['temple_events']['Row'];
 
 export default function TempleEvents() {
-  const { profile, isCommittee } = useAuth();
+  const { userProfile } = useClerkAuth();
+  const isCommittee = userProfile?.role === 'committee' || userProfile?.role === 'admin' || userProfile?.role === 'super_admin';
   const [events, setEvents] = useState<TempleEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditor, setShowEditor] = useState(false);
@@ -33,11 +34,11 @@ export default function TempleEvents() {
 
   useEffect(() => {
     fetchEvents();
-  }, [profile, isCommittee]);
+  }, [userProfile, isCommittee]);
 
   // Listen for real-time changes to event assignments
   useEffect(() => {
-    if (!profile?.id) return;
+    if (!userProfile?.id) return;
 
     const channel = supabase
       .channel('event_assignments_changes')
@@ -47,7 +48,7 @@ export default function TempleEvents() {
           event: '*',
           schema: 'public',
           table: 'event_assignments',
-          filter: `user_id=eq.${profile.id}`
+          filter: `user_id=eq.${userProfile?.id}`
         },
         (payload) => {
           // Show notification for new assignments
@@ -67,7 +68,7 @@ export default function TempleEvents() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [profile?.id]);
+  }, [userProfile?.id]);
 
   const fetchEvents = async (isRefresh = false) => {
     try {
@@ -95,14 +96,14 @@ export default function TempleEvents() {
           supabase
             .from('temple_events')
             .select('*')
-            .eq('user_id', profile?.id)
+            .eq('user_id', userProfile?.id)
             .order('start_date', { ascending: true }),
           
           // Events assigned to the user - using a different approach
           supabase
             .from('event_assignments')
             .select('event_id')
-            .eq('user_id', profile?.id)
+            .eq('user_id', userProfile?.id)
         ]);
 
         if (createdEventsResult.error) throw createdEventsResult.error;
@@ -239,7 +240,7 @@ export default function TempleEvents() {
           .from('temple_events')
           .insert({
             ...eventData,
-            user_id: profile!.id,
+            user_id: userProfile!.id,
           })
           .select()
           .single();
@@ -348,6 +349,12 @@ export default function TempleEvents() {
       all_day: false,
       max_participants: '',
       registration_required: false,
+      is_recurring: false,
+      recurrence_type: 'monthly',
+      recurrence_interval: 1,
+      recurrence_end_date: '',
+      assignment_type: 'all',
+      is_assigned_only: false,
     });
   };
 
@@ -392,7 +399,7 @@ export default function TempleEvents() {
     return groups;
   };
 
-  if (profile?.status !== 'approved') {
+  if (userProfile?.status !== 'approved') {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-8 text-center">
@@ -454,10 +461,10 @@ export default function TempleEvents() {
           {!isCommittee && events.length > 0 && (
             <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 mt-3 text-sm">
               <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-center sm:text-left">
-                {events.filter(e => e.user_id === profile?.id).length} Created by You
+                {events.filter(e => e.user_id === userProfile?.id).length} Created by You
               </span>
               <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-center sm:text-left">
-                {events.filter(e => e.user_id !== profile?.id).length} Assigned to You
+                {events.filter(e => e.user_id !== userProfile?.id).length} Assigned to You
               </span>
             </div>
           )}
@@ -798,7 +805,7 @@ export default function TempleEvents() {
                           <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getEventTypeColor(event.event_type)}`}>
                             {event.event_type.replace('_', ' ')}
                           </span>
-                          {event.user_id === profile?.id ? (
+                          {event.user_id === userProfile?.id ? (
                             <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">
                               Created by You
                             </span>
@@ -862,7 +869,7 @@ export default function TempleEvents() {
                     </div>
                     
                     <div className="flex items-center justify-center lg:justify-end space-x-2">
-                      {(isCommittee || event.user_id === profile?.id) && (
+                      {(isCommittee || event.user_id === userProfile?.id) && (
                         <>
                           <button
                             onClick={() => handleEditEvent(event)}

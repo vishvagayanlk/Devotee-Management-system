@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Save, User, Phone, FileText, Activity, Clock, MapPin, CreditCard, Mail, Calendar, Briefcase, Heart } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { supabase, Database } from '../lib/supabase';
 
 type ActivityLog = Database['public']['Tables']['activity_logs']['Row'];
 
 export default function Profile() {
-  const { profile, refreshProfile, loading } = useAuth();
+  const { userProfile, refreshUserProfile, isProfileComplete } = useClerkAuth();
+  const profile = userProfile;
+  const loading = !isProfileComplete;
+  const refreshProfile = refreshUserProfile;
   
   console.log('Profile component - loading:', loading);
   console.log('Profile component - profile:', profile);
@@ -36,11 +39,11 @@ export default function Profile() {
         address: profile.address || '',
         phone: profile.phone || '',
         email: profile.email || '',
-        date_of_birth: profile.date_of_birth || '',
-        occupation: profile.occupation || '',
-        emergency_contact: profile.emergency_contact || '',
-        temple_join_date: profile.temple_join_date || '',
-        bio: profile.bio || '',
+        date_of_birth: (profile as any)?.date_of_birth || '',
+        occupation: (profile as any)?.occupation || '',
+        emergency_contact: (profile as any)?.emergency_contact || '',
+        temple_join_date: (profile as any)?.temple_join_date || '',
+        bio: (profile as any)?.bio || '',
       });
     }
   }, [profile]);

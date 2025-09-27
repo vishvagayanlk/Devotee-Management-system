@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, Search, Save, X, BookOpen, Heart, DollarSign, Users } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { supabase, Database } from '../lib/supabase';
 
 type DevoteeRecord = Database['public']['Tables']['devotee_records']['Row'];
 
 export default function DevoteeRecords() {
-  const { profile, isCommittee } = useAuth();
+  const { userProfile, isProfileComplete } = useClerkAuth();
+  const isCommittee = userProfile?.role === 'committee' || userProfile?.role === 'admin' || userProfile?.role === 'super_admin';
   const [records, setRecords] = useState<DevoteeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,14 +24,14 @@ export default function DevoteeRecords() {
 
   useEffect(() => {
     fetchRecords();
-  }, [profile, isCommittee]);
+  }, [userProfile, isCommittee]);
 
   const fetchRecords = async () => {
     try {
       let query = supabase.from('devotee_records').select('*');
       
       if (!isCommittee) {
-        query = query.eq('user_id', profile?.id);
+        query = query.eq('user_id', userProfile?.id);
       }
       
       const { data, error } = await query.order('date_recorded', { ascending: false });
@@ -68,7 +69,7 @@ export default function DevoteeRecords() {
           .from('devotee_records')
           .insert({
             ...recordData,
-            user_id: profile!.id,
+            user_id: userProfile!.id,
           });
 
         if (error) throw error;
@@ -154,7 +155,7 @@ export default function DevoteeRecords() {
     return matchesSearch && matchesType;
   });
 
-  if (profile?.status !== 'approved') {
+  if (userProfile?.status !== 'approved') {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-8 text-center">
@@ -179,7 +180,7 @@ export default function DevoteeRecords() {
           </p>
         </div>
         
-        {(!isCommittee || (isCommittee && profile?.id)) && (
+        {(!isCommittee || (isCommittee && userProfile?.id)) && (
           <button
             onClick={() => setShowEditor(true)}
             className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors w-full sm:w-auto"
@@ -373,7 +374,7 @@ export default function DevoteeRecords() {
                     </div>
                     
                     <div className="flex items-center justify-center lg:justify-end space-x-2">
-                      {(!isCommittee || record.user_id === profile?.id) && (
+                      {(!isCommittee || record.user_id === userProfile?.id) && (
                         <>
                           <button
                             onClick={() => handleEditRecord(record)}
