@@ -5,13 +5,13 @@ export type Language = 'en' | 'si';
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, variables?: Record<string, string>) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 // Translation function with basic English translations
-const t = (key: string): string => {
+const t = (key: string, variables?: Record<string, string>): string => {
   const translations: Record<string, string> = {
     // Navigation
     'nav.dashboard': 'Dashboard',
@@ -32,6 +32,16 @@ const t = (key: string): string => {
     'dashboard.title': 'Dashboard',
     'dashboard.committee_title': 'Committee Dashboard',
     'dashboard.welcome': 'Welcome back,',
+    'dashboard.my_records': 'My Records',
+    'dashboard.records_description': 'View your devotee records',
+    'dashboard.my_events': 'My Events',
+    'dashboard.events_description': 'View your temple events',
+    'dashboard.my_qr_code': 'My QR Code',
+    'dashboard.qr_description': 'Generate and print your QR code',
+    'dashboard.qr_code_section': 'QR Code',
+    'dashboard.print_id_card': 'Print ID Card',
+    'dashboard.quick_access': 'Quick Access',
+    'dashboard.qr_help': 'Use your QR code for quick temple check-ins',
     
     // Common
     'common.loading': 'Loading...',
@@ -59,9 +69,19 @@ const t = (key: string): string => {
     'common.role': 'Role',
     'common.created_at': 'Created',
     'common.updated_at': 'Updated',
+    'common.print': 'Print',
   };
   
-  return translations[key] || key;
+  let translation = translations[key] || key;
+  
+  // Replace variables in translation
+  if (variables) {
+    Object.entries(variables).forEach(([varKey, varValue]) => {
+      translation = translation.replace(`{${varKey}}`, varValue);
+    });
+  }
+  
+  return translation;
 };
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
