@@ -415,9 +415,6 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
             is_approved: newProfile.is_approved,
             status: newProfile.status
           });
-          
-          // Create user profile details entry
-          await createUserProfileDetails(newProfile.id);
         }
       }
 
@@ -637,30 +634,6 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
     setIsProfileComplete(true);
     localStorage.setItem('onboarding_completed', 'true');
     localStorage.setItem('onboarding_completed_timestamp', Date.now().toString());
-  };
-
-  const createUserProfileDetails = async (userId: string) => {
-    try {
-      console.log('Creating user profile details for user:', userId);
-      
-      const { error } = await supabase
-        .from('user_profile_details')
-        .insert({
-          user_id: userId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
-
-      if (error) {
-        console.warn('Could not create user profile details:', error);
-        // Don't throw error - this is optional
-      } else {
-        console.log('User profile details created successfully');
-      }
-    } catch (error) {
-      console.warn('User profile details creation failed:', error);
-      // Don't throw error - this is optional
-    }
   };
 
   const createMockProfileForPendingUser = () => {

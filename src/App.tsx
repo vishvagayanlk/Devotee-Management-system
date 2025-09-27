@@ -225,8 +225,8 @@ function AppContent() {
     hasUserProfile: !!userProfile
   });
 
-  // If user is authenticated but not approved, show dashboard with limited access
-  if (isSignedIn && userProfile && !userProfile.is_approved) {
+  // If user is authenticated but not approved (and not admin), show dashboard with limited access
+  if (isSignedIn && userProfile && !userProfile.is_approved && userProfile.role !== 'admin' && userProfile.role !== 'super_admin') {
     return (
       <div 
         className="min-h-screen"
