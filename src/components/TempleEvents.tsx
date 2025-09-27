@@ -32,6 +32,7 @@ export default function TempleEvents() {
   });
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
 
   useEffect(() => {
     fetchEvents();
@@ -379,17 +380,40 @@ export default function TempleEvents() {
   const formatEventDate = (startDate: string, endDate: string | null, allDay: boolean) => {
     const start = new Date(startDate);
     const end = endDate ? new Date(endDate) : null;
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     if (allDay) {
-      return `All day - ${start.toLocaleDateString()}`;
+      return `All day - ${start.toLocaleDateString()} (${timezone})`;
     }
 
     if (end && end.toDateString() !== start.toDateString()) {
-      return `${start.toLocaleString()} - ${end.toLocaleString()}`;
+      return `${start.toLocaleString()} - ${end.toLocaleString()} (${timezone})`;
     } else if (end) {
-      return `${start.toLocaleDateString()} ${start.toLocaleTimeString()} - ${end.toLocaleTimeString()}`;
+      return `${start.toLocaleDateString()} ${start.toLocaleTimeString()} - ${end.toLocaleTimeString()} (${timezone})`;
     } else {
-      return start.toLocaleString();
+      return `${start.toLocaleString()} (${timezone})`;
+    }
+  };
+
+  const getCurrentTime = () => {
+    return new Date();
+  };
+
+  const isEventUpcoming = (event: TempleEvent) => {
+    const now = getCurrentTime();
+    const eventEndTime = event.end_date ? new Date(event.end_date) : new Date(event.start_date);
+    return eventEndTime > now;
+  };
+
+  const isEventPast = (event: TempleEvent) => {
+    return !isEventUpcoming(event);
+  };
+
+  const filterEventsByTab = (events: TempleEvent[]) => {
+    if (activeTab === 'upcoming') {
+      return events.filter(isEventUpcoming);
+    } else {
+      return events.filter(isEventPast);
     }
   };
 
@@ -397,14 +421,48 @@ export default function TempleEvents() {
     const groups: { [key: string]: TempleEvent[] } = {};
     
     events.forEach(event => {
-      const date = new Date(event.start_date).toDateString();
-      if (!groups[date]) {
-        groups[date] = [];
+      const eventDate = new Date(event.start_date);
+      const dateKey = eventDate.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
       }
-      groups[date].push(event);
+      groups[dateKey].push(event);
+    });
+    
+    // Sort events within each date group by start time
+    Object.keys(groups).forEach(dateKey => {
+      groups[dateKey].sort((a, b) => {
+        if (activeTab === 'upcoming') {
+          return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+        } else {
+          return new Date(b.start_date).getTime() - new Date(a.start_date).getTime();
+        }
+      });
     });
 
-    return groups;
+    // Sort date groups chronologically
+    const sortedGroups: { [key: string]: TempleEvent[] } = {};
+    const sortedDates = Object.keys(groups).sort((a, b) => {
+      const dateA = new Date(a);
+      const dateB = new Date(b);
+      if (activeTab === 'upcoming') {
+        return dateA.getTime() - dateB.getTime();
+      } else {
+        return dateB.getTime() - dateA.getTime();
+      }
+    });
+
+    sortedDates.forEach(date => {
+      sortedGroups[date] = groups[date];
+    });
+
+    return sortedGroups;
   };
 
   if (userProfile?.status !== 'approved') {
@@ -420,7 +478,8 @@ export default function TempleEvents() {
     );
   }
 
-  const eventGroups = groupEventsByDate(events);
+  const filteredEvents = filterEventsByTab(events);
+  const eventGroups = groupEventsByDate(filteredEvents);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 px-4 sm:px-0">
@@ -466,6 +525,10 @@ export default function TempleEvents() {
           <p className="text-gray-600 mt-2">
             {isCommittee ? 'Manage all temple events and ceremonies' : 'View temple events, ceremonies, and special occasions'}
           </p>
+          <div className="text-sm text-gray-500 mt-1">
+            <Clock className="w-4 h-4 inline mr-1" />
+            Timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
+          </div>
           {!isCommittee && events.length > 0 && (
             <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 mt-3 text-sm">
               <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-center sm:text-left">
@@ -497,6 +560,46 @@ export default function TempleEvents() {
               <span>New Event</span>
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Event Tabs */}
+      <div className="bg-white rounded-lg shadow-sm border">
+        <div className="border-b border-gray-200">
+          <nav className="flex space-x-8 px-6" aria-label="Tabs">
+            <button
+              onClick={() => setActiveTab('upcoming')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'upcoming'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <CalendarIcon className="w-4 h-4" />
+                <span>Upcoming Events</span>
+                <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">
+                  {events.filter(isEventUpcoming).length}
+                </span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('past')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'past'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Clock className="w-4 h-4" />
+                <span>Past Events</span>
+                <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">
+                  {events.filter(isEventPast).length}
+                </span>
+              </div>
+            </button>
+          </nav>
         </div>
       </div>
 
@@ -780,13 +883,25 @@ export default function TempleEvents() {
             </div>
           ))}
         </div>
-      ) : events.length === 0 ? (
+      ) : filteredEvents.length === 0 ? (
         <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
-          <CalendarIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No events scheduled</h3>
-          <p className="text-gray-600">
-            {isCommittee ? 'Create your first temple event to get started.' : 'No temple events are currently scheduled.'}
-          </p>
+          {activeTab === 'upcoming' ? (
+            <>
+              <CalendarIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No upcoming events</h3>
+              <p className="text-gray-600">
+                {isCommittee ? 'Create your first temple event to get started.' : 'No upcoming temple events are currently scheduled.'}
+              </p>
+            </>
+          ) : (
+            <>
+              <Clock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No past events</h3>
+              <p className="text-gray-600">
+                No past temple events found. Past events will appear here once they have ended.
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-6">
@@ -794,12 +909,7 @@ export default function TempleEvents() {
             <div key={date} className="bg-white rounded-lg shadow-sm border">
               <div className="bg-orange-50 px-6 py-3 border-b">
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {new Date(date).toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
+                  {date}
                 </h3>
               </div>
               
