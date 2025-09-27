@@ -128,15 +128,15 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
       if (existingProfile) {
         console.log('Updating existing profile...');
         // Update existing profile with latest Clerk data
+        const updateData = {
+          email: user.primaryEmailAddress?.emailAddress || '',
+          full_name: user.fullName || '',
+          updated_at: new Date().toISOString(),
+        };
+
         const { data: updatedProfile, error: updateError } = await supabase
           .from('user_profiles')
-          .update({
-            email: user.primaryEmailAddress?.emailAddress || '',
-            full_name: user.fullName || '',
-            first_name: user.firstName || null,
-            last_name: user.lastName || null,
-            updated_at: new Date().toISOString(),
-          })
+          .update(updateData)
           .eq('clerk_id', user.id)
           .select()
           .single();
@@ -151,13 +151,11 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
         console.log('Profile updated successfully');
       } else {
         console.log('Creating new profile...');
-        // Create new profile
+        // Create new profile with only basic required columns to avoid schema issues
         const profileData = {
           clerk_id: user.id,
           email: user.primaryEmailAddress?.emailAddress || '',
           full_name: user.fullName || '',
-          first_name: user.firstName || null,
-          last_name: user.lastName || null,
           is_approved: false,
           status: 'pending' as const,
           role: 'devotee' as const,
@@ -183,10 +181,37 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
             details: createError.details,
             hint: createError.hint
           });
-          throw createError;
+
+          // If the error is about missing columns, try creating with minimal data
+          if (createError.code === 'PGRST204') {
+            console.log('Retrying profile creation with minimal data...');
+            
+            const fallbackProfileData = {
+              clerk_id: user.id,
+              email: user.primaryEmailAddress?.emailAddress || '',
+              full_name: user.fullName || '',
+            };
+
+            const { data: fallbackProfile, error: fallbackError } = await supabase
+              .from('user_profiles')
+              .insert(fallbackProfileData)
+              .select()
+              .single();
+
+            if (fallbackError) {
+              console.error('Fallback profile creation also failed:', fallbackError);
+              throw fallbackError;
+            }
+
+            console.log('Fallback profile creation successful:', fallbackProfile);
+            setUserProfile(fallbackProfile);
+          } else {
+            throw createError;
+          }
+        } else {
+          setUserProfile(newProfile);
+          console.log('Profile created successfully');
         }
-        setUserProfile(newProfile);
-        console.log('Profile created successfully');
       }
 
       // Set a flag in localStorage to ensure it persists
