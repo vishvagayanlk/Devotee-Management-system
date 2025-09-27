@@ -197,6 +197,52 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
           if (emailError) {
             console.error('Email lookup error:', emailError);
           }
+          
+          // Special case: If this is an admin email and no profile found, create one immediately
+          const isAdminEmail = user.primaryEmailAddress?.emailAddress === 'admin@temple.com';
+          if (isAdminEmail) {
+            console.log('Admin email detected, creating admin profile immediately...');
+            const adminProfile = {
+              clerk_id: user.id,
+              email: user.primaryEmailAddress?.emailAddress || '',
+              full_name: user.fullName || 'Temple Administrator',
+              is_approved: true,
+              status: 'approved' as const,
+              role: 'admin' as const,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+            
+            console.log('Creating admin profile with data:', adminProfile);
+            
+            const { data: newAdminProfile, error: createAdminError } = await supabase
+              .from('user_profiles')
+              .insert(adminProfile)
+              .select()
+              .single();
+            
+            if (createAdminError) {
+              console.error('Error creating admin profile:', createAdminError);
+              // Create mock profile as fallback
+              existingProfile = {
+                id: user.id,
+                clerk_id: user.id,
+                email: user.primaryEmailAddress?.emailAddress || '',
+                full_name: user.fullName || 'Temple Administrator',
+                is_approved: true,
+                status: 'approved' as const,
+                role: 'admin' as const,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+              fetchError = null;
+              console.log('Created mock admin profile:', existingProfile);
+            } else {
+              existingProfile = newAdminProfile;
+              fetchError = null;
+              console.log('Admin profile created successfully:', existingProfile);
+            }
+          }
         }
       }
 
