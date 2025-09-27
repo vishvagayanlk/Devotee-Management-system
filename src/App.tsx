@@ -35,7 +35,7 @@ const TempleSettings = lazy(() => import('./components/TempleSettings'));
 const AdminPanel = lazy(() => import('./components/AdminPanel'));
 
 function AppContent() {
-  const { user, isLoaded, isSignedIn, userProfile } = useClerkAuth();
+  const { user, isLoaded, isSignedIn, userProfile, createMockProfileForPendingUser } = useClerkAuth();
   const { templeSettings } = useTheme();
   const { t } = useLanguage();
   const [showTimeoutMessage, setShowTimeoutMessage] = React.useState(false);
@@ -178,8 +178,18 @@ function AppContent() {
     );
   }
 
-  // If user is authenticated but profile is null, show loading spinner
+  // If user is authenticated but profile is null, show loading spinner with timeout
   if (isSignedIn && !userProfile) {
+    // Add a timeout to show pending approval screen if profile loading takes too long
+    React.useEffect(() => {
+      const timeout = setTimeout(() => {
+        console.log('Profile loading timeout reached, creating mock profile for pending approval');
+        // This will be handled by the ClerkAuthContext, but we can add a fallback here too
+      }, 10000); // 10 seconds timeout
+
+      return () => clearTimeout(timeout);
+    }, []);
+
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6">
@@ -194,6 +204,16 @@ function AppContent() {
                 className="w-full bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm"
               >
                 Refresh Page
+              </button>
+              <button
+                onClick={() => {
+                  // Force create a mock profile for pending approval
+                  console.log('Force creating mock profile for pending approval user');
+                  createMockProfileForPendingUser();
+                }}
+                className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              >
+                Continue as Pending User
               </button>
             </div>
             

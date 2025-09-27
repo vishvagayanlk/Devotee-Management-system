@@ -37,6 +37,7 @@ interface ClerkAuthContextType {
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
   checkProfileCompletion: () => Promise<boolean>;
   markOnboardingComplete: () => void;
+  createMockProfileForPendingUser: () => void;
 }
 
 const ClerkAuthContext = createContext<ClerkAuthContextType | undefined>(undefined);
@@ -209,7 +210,7 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
             .single();
           
           if (minimalError) {
-            console.log('Minimal profile creation also failed, using fallback...');
+            console.log('Minimal profile creation also failed, creating mock profile...');
             // Create a mock profile object for the frontend
             newProfile = {
               id: user.id,
@@ -217,12 +218,13 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
               email: user.primaryEmailAddress?.emailAddress || '',
               full_name: user.fullName || '',
               is_approved: false,
-              status: 'pending',
-              role: 'devotee',
+              status: 'pending' as const,
+              role: 'devotee' as const,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             };
             createError = null;
+            console.log('Mock profile created automatically:', newProfile);
           } else {
             newProfile = minimalProfile;
             createError = null;
@@ -264,6 +266,25 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
       
       // Set profile loaded even on error to prevent infinite loading
       clearTimeout(profileCreationTimeout);
+      
+      // Create a mock profile for pending approval users if database fails
+      if (user) {
+        console.log('Creating mock profile for pending approval user due to database error');
+        const mockProfile = {
+          id: user.id,
+          clerk_id: user.id,
+          email: user.primaryEmailAddress?.emailAddress || '',
+          full_name: user.fullName || '',
+          is_approved: false,
+          status: 'pending' as const,
+          role: 'devotee' as const,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        setUserProfile(mockProfile);
+        console.log('Mock profile created:', mockProfile);
+      }
+      
       setIsProfileLoaded(true);
       setIsCreatingProfile(false);
     }
@@ -388,6 +409,29 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
     localStorage.setItem('onboarding_completed_timestamp', Date.now().toString());
   };
 
+  const createMockProfileForPendingUser = () => {
+    if (!user) return;
+    
+    console.log('Creating mock profile for pending approval user');
+    const mockProfile = {
+      id: user.id,
+      clerk_id: user.id,
+      email: user.primaryEmailAddress?.emailAddress || '',
+      full_name: user.fullName || '',
+      is_approved: false,
+      status: 'pending' as const,
+      role: 'devotee' as const,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    
+    setUserProfile(mockProfile);
+    setIsProfileLoaded(true);
+    setIsCreatingProfile(false);
+    
+    console.log('Mock profile created for pending user:', mockProfile);
+  };
+
   const checkProfileCompletion = async (): Promise<boolean> => {
     if (!userProfile) {
       console.log('No user profile found for completion check');
@@ -414,6 +458,7 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
     updateUserProfile,
     checkProfileCompletion,
     markOnboardingComplete,
+    createMockProfileForPendingUser,
   };
 
   return (
