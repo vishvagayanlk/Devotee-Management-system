@@ -23,6 +23,7 @@ import SignUpPage from './components/SignUpPage';
 import RouteTest from './components/RouteTest';
 import SimpleSignUp from './components/SimpleSignUp';
 import HandshakeTest from './components/HandshakeTest';
+import SimpleSignupSuccess from './components/SimpleSignupSuccess';
 
 // Lazy load components for better performance
 const DashboardWrapper = lazy(() => import('./components/DashboardWrapper'));
@@ -170,6 +171,7 @@ function AppContent() {
           <Route path="/route-test" element={<RouteTest />} />
           <Route path="/simple-test" element={<SimpleSignUp />} />
           <Route path="/handshake-test" element={<HandshakeTest />} />
+          <Route path="/simple-success" element={<SimpleSignupSuccess />} />
           <Route path="*" element={<ClerkAuth mode="signin" />} />
         </Routes>
       </div>

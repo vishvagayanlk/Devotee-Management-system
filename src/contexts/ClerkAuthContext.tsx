@@ -63,6 +63,15 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
 
   // Create or update user profile in Supabase when Clerk user changes
   useEffect(() => {
+    console.log('ClerkAuthContext: useEffect triggered', {
+      isLoaded,
+      isSignedIn,
+      hasUser: !!user,
+      isCreatingProfile,
+      hasUserProfile: !!userProfile,
+      userId: user?.id
+    });
+
     if (isLoaded && isSignedIn && user && !isCreatingProfile && !userProfile) {
       console.log('Clerk user authenticated, creating/updating profile...');
       setIsCreatingProfile(true);
@@ -70,6 +79,10 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
     } else if (isLoaded && !isSignedIn) {
       console.log('Clerk user not authenticated, clearing profile');
       setUserProfile(null);
+      setIsProfileLoaded(true);
+      setIsCreatingProfile(false);
+    } else if (isLoaded && isSignedIn && user && userProfile) {
+      console.log('User profile already exists, setting as loaded');
       setIsProfileLoaded(true);
       setIsCreatingProfile(false);
     }
@@ -94,6 +107,13 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
       email: user.primaryEmailAddress?.emailAddress,
       fullName: user.fullName
     });
+
+    // Add a timeout to prevent hanging
+    const profileCreationTimeout = setTimeout(() => {
+      console.log('Profile creation timeout reached, setting profile as loaded');
+      setIsProfileLoaded(true);
+      setIsCreatingProfile(false);
+    }, 15000); // 15 seconds timeout
 
     try {
       // First, let's check if we can connect to Supabase
@@ -219,6 +239,7 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
       localStorage.setItem('profile_completion_timestamp', Date.now().toString());
       
       console.log('Profile setup completed successfully');
+      clearTimeout(profileCreationTimeout);
       setIsProfileLoaded(true);
       setIsCreatingProfile(false);
     } catch (error) {
@@ -236,6 +257,7 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
       });
       
       // Set profile loaded even on error to prevent infinite loading
+      clearTimeout(profileCreationTimeout);
       setIsProfileLoaded(true);
       setIsCreatingProfile(false);
     }

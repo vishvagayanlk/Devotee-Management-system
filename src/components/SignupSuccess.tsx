@@ -23,13 +23,13 @@ const SignupSuccess: React.FC = () => {
       url: window.location.href
     });
 
-    if (hasHandshake && isLoaded) {
-      console.log('SignupSuccess: Processing handshake...');
+    if (hasHandshake) {
+      console.log('SignupSuccess: Handshake detected, processing...');
       
-      // Wait a bit for Clerk to process the handshake
+      // Wait for Clerk to load and process the handshake
       const timeout = setTimeout(() => {
         console.log('SignupSuccess: Timeout reached, checking user state...');
-        console.log('SignupSuccess: isSignedIn:', isSignedIn);
+        console.log('SignupSuccess: isLoaded:', isLoaded, 'isSignedIn:', isSignedIn);
         
         if (isSignedIn) {
           console.log('SignupSuccess: User signed in, redirecting to dashboard');
@@ -38,7 +38,7 @@ const SignupSuccess: React.FC = () => {
           console.log('SignupSuccess: User not signed in, staying on success page');
           setIsProcessing(false);
         }
-      }, 3000);
+      }, 5000); // Increased timeout to 5 seconds
 
       // Also check immediately if user is already signed in
       if (isSignedIn) {
@@ -51,8 +51,26 @@ const SignupSuccess: React.FC = () => {
     } else if (isLoaded) {
       console.log('SignupSuccess: No handshake, user state:', isSignedIn);
       setIsProcessing(false);
+    } else {
+      // If no handshake and not loaded, wait a bit then show success page
+      const timeout = setTimeout(() => {
+        console.log('SignupSuccess: No handshake and not loaded, showing success page');
+        setIsProcessing(false);
+      }, 2000);
+
+      return () => clearTimeout(timeout);
     }
   }, [isLoaded, isSignedIn, navigate]);
+
+  // Add a maximum timeout to prevent infinite loading
+  useEffect(() => {
+    const maxTimeout = setTimeout(() => {
+      console.log('SignupSuccess: Maximum timeout reached, showing success page');
+      setIsProcessing(false);
+    }, 10000); // 10 seconds maximum
+
+    return () => clearTimeout(maxTimeout);
+  }, []);
 
   if (isProcessing) {
     return (
@@ -61,15 +79,26 @@ const SignupSuccess: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600 mb-2">Processing your sign-up...</p>
           <p className="text-sm text-gray-500 mb-4">Please wait while we complete your registration</p>
-          <button
-            onClick={() => {
-              console.log('SignupSuccess: Manual refresh clicked');
-              window.location.reload();
-            }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm"
-          >
-            Refresh Page
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={() => {
+                console.log('SignupSuccess: Manual refresh clicked');
+                window.location.reload();
+              }}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm mr-2"
+            >
+              Refresh Page
+            </button>
+            <button
+              onClick={() => {
+                console.log('SignupSuccess: Skip processing clicked');
+                setIsProcessing(false);
+              }}
+              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 text-sm"
+            >
+              Skip Processing
+            </button>
+          </div>
         </div>
       </div>
     );
