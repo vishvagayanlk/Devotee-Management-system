@@ -71,7 +71,8 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
       hasUser: !!user,
       isCreatingProfile,
       hasUserProfile: !!userProfile,
-      userId: user?.id
+      userId: user?.id,
+      userEmail: user?.primaryEmailAddress?.emailAddress
     });
 
     if (isLoaded && isSignedIn && user && !isCreatingProfile) {
@@ -92,6 +93,16 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
     }
   }, [isLoaded, isSignedIn, user, isCreatingProfile, userProfile]);
 
+  // Reset profile when user changes (for new signups)
+  useEffect(() => {
+    if (isLoaded && isSignedIn && user && userProfile && userProfile.clerk_id !== user.id) {
+      console.log('User ID changed, resetting profile for new user');
+      setUserProfile(null);
+      setIsProfileLoaded(false);
+      setIsCreatingProfile(false);
+    }
+  }, [user?.id, userProfile?.clerk_id, isLoaded, isSignedIn]);
+
   // Re-check profile completion when userProfile changes (e.g., after refresh)
   useEffect(() => {
     if (userProfile && isLoaded) {
@@ -106,10 +117,11 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
       return;
     }
 
-    console.log('Starting profile creation for user:', {
+    console.log('🚀 Starting profile creation for user:', {
       userId: user.id,
       email: user.primaryEmailAddress?.emailAddress,
-      fullName: user.fullName
+      fullName: user.fullName,
+      timestamp: new Date().toISOString()
     });
 
     // Add a timeout to prevent hanging

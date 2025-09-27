@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, memo, useCallback } from 'react';
-import { Users, BookOpen, Calendar, TrendingUp, UserCheck, Clock, Heart, Building2, QrCode, Download, Printer } from 'lucide-react';
+import { Users, BookOpen, Calendar, TrendingUp, UserCheck, Clock, Building2, QrCode, Download, Printer } from 'lucide-react';
 import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContextFallback';
@@ -46,10 +46,10 @@ const DashboardCard = memo(({ card, index }: { card: any; index: number }) => {
 DashboardCard.displayName = 'DashboardCard';
 
 export default function Dashboard() {
-  const { userProfile, isProfileComplete } = useClerkAuth();
+  const { userProfile } = useClerkAuth();
   const profile = userProfile;
-  const isAdmin = profile?.role === 'admin';
-  const isCommittee = profile?.role === 'admin' || profile?.role === 'committee';
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
+  const isCommittee = profile?.role === 'admin' || profile?.role === 'committee' || profile?.role === 'super_admin';
   const { templeSettings } = useTheme();
   const { t } = useLanguage();
   
@@ -90,14 +90,45 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        if (isCommittee) {
-          // Use Promise.allSettled to handle missing tables gracefully
+        if (isAdmin) {
+          // Admin users see system-wide statistics
+          console.log('Fetching admin dashboard data...');
           const results = await Promise.allSettled([
             supabase.from('devotee_records').select('id', { count: 'exact' }),
             supabase.from('temple_events').select('id', { count: 'exact' }),
             supabase.from('user_profiles').select('id', { count: 'exact' }),
-            // supabase.from('user_profiles').select('id', { count: 'exact' }).eq('is_approved', false), // Disabled until migration
-            Promise.resolve({ count: 0 }),
+            supabase.from('user_profiles').select('id', { count: 'exact' }).eq('is_approved', false),
+            supabase.from('devotee_records').select('title, created_at, user_id').order('created_at', { ascending: false }).limit(5),
+            supabase.from('temple_events').select('title, start_date, user_id').gte('start_date', new Date().toISOString()).order('start_date', { ascending: true }).limit(5),
+          ]);
+
+          const [recordsRes, eventsRes, devoteesRes, pendingRes, recentRecordsRes, upcomingEventsRes] = results.map(result => 
+            result.status === 'fulfilled' ? result.value : { count: 0, data: [], error: null }
+          );
+
+          console.log('Admin stats:', {
+            totalRecords: recordsRes.count || 0,
+            totalEvents: eventsRes.count || 0,
+            totalDevotees: devoteesRes.count || 0,
+            pendingDevotees: pendingRes.count || 0,
+          });
+
+          setStats({
+            totalRecords: recordsRes.count || 0,
+            totalEvents: eventsRes.count || 0,
+            totalDevotees: devoteesRes.count || 0,
+            pendingDevotees: pendingRes.count || 0,
+            recentRecords: (recentRecordsRes as any).data || [],
+            upcomingEvents: (upcomingEventsRes as any).data || [],
+          });
+        } else if (isCommittee) {
+          // Committee users see limited admin data
+          console.log('Fetching committee dashboard data...');
+          const results = await Promise.allSettled([
+            supabase.from('devotee_records').select('id', { count: 'exact' }),
+            supabase.from('temple_events').select('id', { count: 'exact' }),
+            supabase.from('user_profiles').select('id', { count: 'exact' }),
+            Promise.resolve({ count: 0 }), // Committee can't see pending users
             supabase.from('devotee_records').select('title, created_at, user_id').order('created_at', { ascending: false }).limit(5),
             supabase.from('temple_events').select('title, start_date, user_id').gte('start_date', new Date().toISOString()).order('start_date', { ascending: true }).limit(5),
           ]);
@@ -111,8 +142,8 @@ export default function Dashboard() {
             totalEvents: eventsRes.count || 0,
             totalDevotees: devoteesRes.count || 0,
             pendingDevotees: pendingRes.count || 0,
-            recentRecords: recentRecordsRes.data || [],
-            upcomingEvents: upcomingEventsRes.data || [],
+            recentRecords: (recentRecordsRes as any).data || [],
+            upcomingEvents: (upcomingEventsRes as any).data || [],
           });
         } else {
           // For regular users, get both created events and assigned events
@@ -143,8 +174,8 @@ export default function Dashboard() {
             if (assignedEventsRes.data) {
               assignedEventsData = assignedEventsRes.data;
               assignedUpcomingData = assignedEventsRes.data
-                .filter(event => new Date(event.start_date) >= new Date())
-                .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
+                .filter((event: any) => new Date(event.start_date) >= new Date())
+                .sort((a: any, b: any) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
                 .slice(0, 5);
             }
           }
@@ -172,7 +203,7 @@ export default function Dashboard() {
 
     // Always fetch stats for now (removed is_approved check)
     fetchStats();
-  }, [profile, isAdmin]);
+  }, [profile, isAdmin, isCommittee]);
 
   // Removed approval check - users can access dashboard immediately
 
@@ -229,10 +260,54 @@ export default function Dashboard() {
     },
   ], [stats.totalDevotees, stats.pendingDevotees]);
 
-  const cards = useMemo(() => 
-    isCommittee ? [...userCards, ...committeeCards] : userCards,
-    [isCommittee, userCards, committeeCards]
-  );
+  const adminCards = useMemo(() => [
+    {
+      title: 'Total Records',
+      value: stats.totalRecords,
+      icon: BookOpen,
+      color: 'bg-primary',
+      bgColor: 'bg-primary-50',
+      textColor: 'text-primary-700',
+      description: 'All devotee records',
+    },
+    {
+      title: 'Total Events',
+      value: stats.totalEvents,
+      icon: Calendar,
+      color: 'bg-accent',
+      bgColor: 'bg-accent-50',
+      textColor: 'text-accent-700',
+      description: 'All temple events',
+    },
+    {
+      title: 'Total Devotees',
+      value: stats.totalDevotees,
+      icon: Users,
+      color: 'bg-secondary',
+      bgColor: 'bg-secondary-50',
+      textColor: 'text-secondary-700',
+      description: 'Registered devotees',
+    },
+    {
+      title: 'Pending Approval',
+      value: stats.pendingDevotees,
+      icon: TrendingUp,
+      color: 'bg-yellow-500',
+      bgColor: 'bg-yellow-50',
+      textColor: 'text-yellow-700',
+      description: 'Awaiting review',
+    },
+  ], [stats.totalRecords, stats.totalEvents, stats.totalDevotees, stats.pendingDevotees]);
+
+  const cards = useMemo(() => {
+    if (isAdmin) {
+      return adminCards;
+    } else if (isCommittee) {
+      return [...userCards, ...committeeCards];
+    } else {
+      return userCards;
+    }
+  }, [isAdmin, isCommittee, userCards, committeeCards, adminCards]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -241,15 +316,15 @@ export default function Dashboard() {
       <div className="flex flex-col space-y-4">
         <div>
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-text">
-            {isCommittee ? t('dashboard.committee_title') : t('dashboard.title')}
+            {isAdmin ? 'Admin Dashboard' : isCommittee ? t('dashboard.committee_title') : t('dashboard.title')}
           </h1>
           <p className="text-sm sm:text-base text-muted mt-1">
             {t('dashboard.welcome')} {profile?.full_name || ''}
           </p>
         </div>
         
-        {/* Pending Approval Message - Disabled until migration */}
-        {profile && !profile.is_approved && (
+        {/* Pending Approval Message - Only show for non-admin users */}
+        {profile && !profile.is_approved && !isAdmin && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <div className="flex items-start">
               <div className="flex-shrink-0">
@@ -299,7 +374,7 @@ export default function Dashboard() {
                   <button
                     onClick={() => {
                       // Dismiss the banner
-                      const banner = document.querySelector('.bg-blue-50');
+                      const banner = document.querySelector('.bg-blue-50') as HTMLElement;
                       if (banner) banner.style.display = 'none';
                     }}
                     className="ml-3 text-blue-600 hover:text-blue-800 text-sm font-medium"
