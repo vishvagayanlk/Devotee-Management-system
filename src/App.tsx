@@ -17,14 +17,7 @@ import HandshakeDebug from './components/HandshakeDebug';
 import HandshakeHandler from './components/HandshakeHandler';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
-import ClerkIntegrationTest from './components/ClerkIntegrationTest';
-import SignUpTest from './components/SignUpTest';
 import SignUpPage from './components/SignUpPage';
-import RouteTest from './components/RouteTest';
-import SimpleSignUp from './components/SimpleSignUp';
-import HandshakeTest from './components/HandshakeTest';
-import SimpleSignupSuccess from './components/SimpleSignupSuccess';
-import AdminTest from './components/AdminTest';
 
 // Lazy load components for better performance
 const DashboardWrapper = lazy(() => import('./components/DashboardWrapper'));
@@ -166,14 +159,6 @@ function AppContent() {
           <Route path="/debug" element={<ProfileDebugger />} />
           <Route path="/onboarding-debug" element={<OnboardingDebugger />} />
           <Route path="/onboarding-reset" element={<OnboardingReset />} />
-          <Route path="/clerk-test" element={<ClerkIntegrationTest />} />
-          <Route path="/debug-auth" element={<SignUpTest />} />
-          <Route path="/test-signup" element={<SignUpPage />} />
-          <Route path="/route-test" element={<RouteTest />} />
-                  <Route path="/simple-test" element={<SimpleSignUp />} />
-                  <Route path="/handshake-test" element={<HandshakeTest />} />
-                  <Route path="/simple-success" element={<SimpleSignupSuccess />} />
-                  <Route path="/admin-test" element={<AdminTest />} />
           <Route path="*" element={<ClerkAuth mode="signin" />} />
         </Routes>
       </div>
