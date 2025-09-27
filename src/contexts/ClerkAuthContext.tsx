@@ -144,11 +144,16 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
       // If no profile found by clerk_id, try to find by email as fallback
       if (fetchError && fetchError.code === 'PGRST116') {
         console.log('No profile found by clerk_id, trying email lookup...');
+        console.log('Looking for email:', user.primaryEmailAddress?.emailAddress);
+        console.log('Current Clerk user ID:', user.id);
+        
         const { data: emailProfile, error: emailError } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('email', user.primaryEmailAddress?.emailAddress)
           .single();
+        
+        console.log('Email lookup result:', { emailProfile, emailError });
         
         if (!emailError && emailProfile) {
           console.log('Found profile by email, updating clerk_id...');
@@ -164,9 +169,13 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
           fetchError = null;
           
           // Update the profile with the correct clerk_id
+          console.log('Updating profile with Clerk ID:', user.id);
           const { error: updateError } = await supabase
             .from('user_profiles')
-            .update({ clerk_id: user.id })
+            .update({ 
+              clerk_id: user.id,
+              updated_at: new Date().toISOString()
+            })
             .eq('id', emailProfile.id);
           
           if (updateError) {
@@ -182,6 +191,11 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
               is_approved: existingProfile.is_approved,
               status: existingProfile.status
             });
+          }
+        } else {
+          console.log('No profile found by email either');
+          if (emailError) {
+            console.error('Email lookup error:', emailError);
           }
         }
       }
@@ -331,14 +345,19 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
       // Create a mock profile for pending approval users if database fails
       if (user) {
         console.log('Creating mock profile for pending approval user due to database error');
+        
+        // Check if this is an admin email
+        const isAdminEmail = user.primaryEmailAddress?.emailAddress === 'admin@temple.com';
+        console.log('Is admin email:', isAdminEmail);
+        
         const mockProfile = {
           id: user.id,
           clerk_id: user.id,
           email: user.primaryEmailAddress?.emailAddress || '',
           full_name: user.fullName || '',
-          is_approved: false,
-          status: 'pending' as const,
-          role: 'devotee' as const,
+          is_approved: isAdminEmail, // Set to true for admin email
+          status: isAdminEmail ? 'approved' as const : 'pending' as const,
+          role: isAdminEmail ? 'admin' as const : 'devotee' as const,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -474,14 +493,19 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
     if (!user) return;
     
     console.log('Creating mock profile for pending approval user');
+    
+    // Check if this is an admin email
+    const isAdminEmail = user.primaryEmailAddress?.emailAddress === 'admin@temple.com';
+    console.log('Is admin email:', isAdminEmail);
+    
     const mockProfile = {
       id: user.id,
       clerk_id: user.id,
       email: user.primaryEmailAddress?.emailAddress || '',
       full_name: user.fullName || '',
-      is_approved: false,
-      status: 'pending' as const,
-      role: 'devotee' as const,
+      is_approved: isAdminEmail, // Set to true for admin email
+      status: isAdminEmail ? 'approved' as const : 'pending' as const,
+      role: isAdminEmail ? 'admin' as const : 'devotee' as const,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
