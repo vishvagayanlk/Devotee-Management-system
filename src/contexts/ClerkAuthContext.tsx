@@ -328,7 +328,13 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
             
             // Check if this is an admin email and try to find existing admin profile
             const userEmail = user.primaryEmailAddress?.emailAddress || '';
+            console.log('🔍 Admin Detection Debug:');
+            console.log('User email:', userEmail);
+            console.log('Environment check - import.meta.env.VITE_ADMIN_EMAILS:', import.meta?.env?.VITE_ADMIN_EMAILS);
+            console.log('Environment check - process.env.VITE_ADMIN_EMAILS:', process?.env?.VITE_ADMIN_EMAILS);
+            
             const isAdmin = isAdminEmail(userEmail);
+            console.log('isAdminEmail result:', isAdmin);
             if (isAdmin) {
               console.log('Admin email detected, looking for existing admin profile...');
               const { data: existingAdminProfile, error: adminError } = await supabase
@@ -447,6 +453,11 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
         
         // Check if this is an admin email
         const userEmail = user.primaryEmailAddress?.emailAddress || '';
+        console.log('🔍 Admin Detection Debug (Error Handler):');
+        console.log('User email:', userEmail);
+        console.log('Environment check - import.meta.env.VITE_ADMIN_EMAILS:', import.meta?.env?.VITE_ADMIN_EMAILS);
+        console.log('Environment check - process.env.VITE_ADMIN_EMAILS:', process?.env?.VITE_ADMIN_EMAILS);
+        
         const isAdmin = isAdminEmail(userEmail);
         console.log('Is admin email:', isAdmin);
         
@@ -641,8 +652,12 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
     console.log('Creating mock profile for pending approval user');
     
     const userEmail = user.primaryEmailAddress?.emailAddress || '';
-    const isAdmin = isAdminEmail(userEmail);
+    console.log('🔍 Admin Detection Debug (Mock Profile):');
     console.log('User email:', userEmail);
+    console.log('Environment check - import.meta.env.VITE_ADMIN_EMAILS:', import.meta?.env?.VITE_ADMIN_EMAILS);
+    console.log('Environment check - process.env.VITE_ADMIN_EMAILS:', process?.env?.VITE_ADMIN_EMAILS);
+    
+    const isAdmin = isAdminEmail(userEmail);
     console.log('Is admin email:', isAdmin);
     
     const mockProfile = {

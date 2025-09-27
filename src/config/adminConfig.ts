@@ -8,26 +8,38 @@ export interface AdminConfig {
 
 // Get admin configuration from environment variables
 export const getAdminConfig = (): AdminConfig => {
+  // In Vite, environment variables are available as import.meta.env
+  const getEnvVar = (key: string): string => {
+    // Try import.meta.env first (Vite), then process.env (Node.js)
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      return import.meta.env[key] || '';
+    }
+    if (typeof process !== 'undefined' && process.env) {
+      return process.env[key] || '';
+    }
+    return '';
+  };
+
   // Get admin emails from environment variable (comma-separated)
-  const adminEmailsEnv = process.env.VITE_ADMIN_EMAILS || '';
+  const adminEmailsEnv = getEnvVar('VITE_ADMIN_EMAILS');
   const adminEmails = adminEmailsEnv 
     ? adminEmailsEnv.split(',').map(email => email.trim().toLowerCase())
     : [];
 
   // Get admin domains from environment variable (comma-separated)
-  const adminDomainsEnv = process.env.VITE_ADMIN_DOMAINS || '';
+  const adminDomainsEnv = getEnvVar('VITE_ADMIN_DOMAINS');
   const adminDomains = adminDomainsEnv 
     ? adminDomainsEnv.split(',').map(domain => domain.trim().toLowerCase())
     : [];
 
   // Get admin patterns from environment variable (comma-separated)
-  const adminPatternsEnv = process.env.VITE_ADMIN_PATTERNS || 'admin';
+  const adminPatternsEnv = getEnvVar('VITE_ADMIN_PATTERNS') || 'admin';
   const adminPatterns = adminPatternsEnv 
     ? adminPatternsEnv.split(',').map(pattern => pattern.trim().toLowerCase())
     : ['admin'];
 
   // Get super admin emails (highest privilege)
-  const superAdminEmailsEnv = process.env.VITE_SUPER_ADMIN_EMAILS || '';
+  const superAdminEmailsEnv = getEnvVar('VITE_SUPER_ADMIN_EMAILS');
   const superAdminEmails = superAdminEmailsEnv 
     ? superAdminEmailsEnv.split(',').map(email => email.trim().toLowerCase())
     : [];
