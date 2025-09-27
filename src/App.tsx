@@ -22,6 +22,7 @@ import SignUpTest from './components/SignUpTest';
 import SignUpPage from './components/SignUpPage';
 import RouteTest from './components/RouteTest';
 import SimpleSignUp from './components/SimpleSignUp';
+import HandshakeTest from './components/HandshakeTest';
 
 // Lazy load components for better performance
 const DashboardWrapper = lazy(() => import('./components/DashboardWrapper'));
@@ -41,9 +42,13 @@ function AppContent() {
   // Debug logging for handshake URLs
   const urlParams = new URLSearchParams(window.location.search);
   const hasHandshake = urlParams.has('__clerk_handshake') || urlParams.has('__clerk_handshake_token');
+  const handshakeToken = urlParams.get('__clerk_handshake');
+  const handshakeTokenParam = urlParams.get('__clerk_handshake_token');
   
   console.log('AppContent: Current state', {
     hasHandshake,
+    handshakeToken: handshakeToken ? 'Present' : 'Missing',
+    handshakeTokenParam: handshakeTokenParam ? 'Present' : 'Missing',
     url: window.location.href,
     search: window.location.search,
     pathname: window.location.pathname,
@@ -61,7 +66,14 @@ function AppContent() {
   // Handle handshake process
   if (hasHandshake && isLoaded) {
     console.log('AppContent: Handshake detected, processing...');
+    console.log('AppContent: Handshake token:', handshakeToken ? 'Present' : 'Missing');
+    console.log('AppContent: Handshake token param:', handshakeTokenParam ? 'Present' : 'Missing');
     return <HandshakeHandler />;
+  }
+
+  // Additional debugging for handshake detection
+  if (hasHandshake) {
+    console.log('AppContent: Handshake detected but isLoaded:', isLoaded);
   }
 
   // Show timeout message if loading takes too long
@@ -157,6 +169,7 @@ function AppContent() {
           <Route path="/test-signup" element={<SignUpPage />} />
           <Route path="/route-test" element={<RouteTest />} />
           <Route path="/simple-test" element={<SimpleSignUp />} />
+          <Route path="/handshake-test" element={<HandshakeTest />} />
           <Route path="*" element={<ClerkAuth mode="signin" />} />
         </Routes>
       </div>

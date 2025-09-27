@@ -1,10 +1,79 @@
 /** @jsxImportSource react */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle, Clock, Building2 } from 'lucide-react';
 
 const SignupSuccess: React.FC = () => {
   const { templeSettings } = useTheme();
+  const { isLoaded, isSignedIn } = useAuth();
+  const navigate = useNavigate();
+  const [isProcessing, setIsProcessing] = useState(true);
+
+  // Handle handshake processing
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasHandshake = urlParams.has('__clerk_handshake') || urlParams.has('__clerk_handshake_token');
+    
+    console.log('SignupSuccess: Handshake check', {
+      hasHandshake,
+      isLoaded,
+      isSignedIn,
+      url: window.location.href
+    });
+
+    if (hasHandshake && isLoaded) {
+      console.log('SignupSuccess: Processing handshake...');
+      
+      // Wait a bit for Clerk to process the handshake
+      const timeout = setTimeout(() => {
+        console.log('SignupSuccess: Timeout reached, checking user state...');
+        console.log('SignupSuccess: isSignedIn:', isSignedIn);
+        
+        if (isSignedIn) {
+          console.log('SignupSuccess: User signed in, redirecting to dashboard');
+          navigate('/dashboard');
+        } else {
+          console.log('SignupSuccess: User not signed in, staying on success page');
+          setIsProcessing(false);
+        }
+      }, 3000);
+
+      // Also check immediately if user is already signed in
+      if (isSignedIn) {
+        console.log('SignupSuccess: User already signed in, redirecting immediately');
+        clearTimeout(timeout);
+        navigate('/dashboard');
+      }
+
+      return () => clearTimeout(timeout);
+    } else if (isLoaded) {
+      console.log('SignupSuccess: No handshake, user state:', isSignedIn);
+      setIsProcessing(false);
+    }
+  }, [isLoaded, isSignedIn, navigate]);
+
+  if (isProcessing) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 mb-2">Processing your sign-up...</p>
+          <p className="text-sm text-gray-500 mb-4">Please wait while we complete your registration</p>
+          <button
+            onClick={() => {
+              console.log('SignupSuccess: Manual refresh clicked');
+              window.location.reload();
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
