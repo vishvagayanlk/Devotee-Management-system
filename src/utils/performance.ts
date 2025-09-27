@@ -215,7 +215,7 @@ export function withPerformanceMeasure<P extends object>(
       performanceMonitor.recordMetric(`${measureName}_mount`, end - start);
     });
 
-    return <Component {...props} />;
+    return React.createElement(Component, props);
   });
 }
 

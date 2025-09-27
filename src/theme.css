@@ -1,3 +1,6 @@
+/* Sinhala font support - must be at the top */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
 /* Temple Theme System CSS Variables */
 :root {
   /* Default theme colors */
@@ -79,8 +82,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Sinhala font support */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
 /* Language-specific font settings */
 [lang="si"] {
