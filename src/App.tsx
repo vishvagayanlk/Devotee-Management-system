@@ -13,9 +13,9 @@ import OnboardingReset from './components/OnboardingReset';
 import PasswordReset from './components/PasswordReset';
 import SSOCallback from './components/SSOCallback';
 import SignupSuccess from './components/SignupSuccess';
-import HandshakeHandler from './components/HandshakeHandler';
 import HandshakeDebug from './components/HandshakeDebug';
 import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // Lazy load components for better performance
 const DashboardWrapper = lazy(() => import('./components/DashboardWrapper'));
@@ -237,15 +237,51 @@ function AppContent() {
         }>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<DashboardWrapper />} />
-            <Route path="/records" element={<DevoteeRecords />} />
-            <Route path="/events" element={<TempleEvents />} />
-            <Route path="/devotee-management" element={<DevoteeManagement />} />
-            <Route path="/all-records" element={<DevoteeRecords />} />
-            <Route path="/all-events" element={<TempleEvents />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/settings" element={<TempleSettings />} />
-            <Route path="/admin" element={<AdminPanel />} />
+            <Route path="/dashboard" element={
+              <ProtectedRoute requireAuth={true} requireApproved={true}>
+                <DashboardWrapper />
+              </ProtectedRoute>
+            } />
+            <Route path="/records" element={
+              <ProtectedRoute requireAuth={true} requireApproved={true}>
+                <DevoteeRecords />
+              </ProtectedRoute>
+            } />
+            <Route path="/events" element={
+              <ProtectedRoute requireAuth={true} requireApproved={true}>
+                <TempleEvents />
+              </ProtectedRoute>
+            } />
+            <Route path="/devotee-management" element={
+              <ProtectedRoute requireAuth={true} requireApproved={true} requireCommittee={true}>
+                <DevoteeManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="/all-records" element={
+              <ProtectedRoute requireAuth={true} requireApproved={true} requireCommittee={true}>
+                <DevoteeRecords />
+              </ProtectedRoute>
+            } />
+            <Route path="/all-events" element={
+              <ProtectedRoute requireAuth={true} requireApproved={true} requireCommittee={true}>
+                <TempleEvents />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute requireAuth={true} requireApproved={true}>
+                <Profile />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute requireAuth={true} requireApproved={true} requireAdmin={true}>
+                <TempleSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin" element={
+              <ProtectedRoute requireAuth={true} requireApproved={true} requireAdmin={true}>
+                <AdminPanel />
+              </ProtectedRoute>
+            } />
             {/* Redirect any unknown routes to dashboard */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>

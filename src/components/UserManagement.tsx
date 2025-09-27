@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Check, X, Eye, Trash2, Search, Filter, Edit3, Save, Activity } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { supabase, Database } from '../lib/supabase';
 
 type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
 type ActivityLog = Database['public']['Tables']['activity_logs']['Row'];
 
 export default function UserManagement() {
-  const { isAdmin } = useAuth();
+  const { userProfile } = useClerkAuth();
+  const isAdmin = userProfile?.role === 'admin';
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -156,18 +157,7 @@ export default function UserManagement() {
     }
   };
 
-  if (!isAdmin) {
-    return (
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600">
-            You don't have permission to access user management.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Auth check is now handled by ProtectedRoute component
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.full_name.toLowerCase().includes(searchTerm.toLowerCase());

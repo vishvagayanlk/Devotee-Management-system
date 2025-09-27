@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Check, X, Trash2, Search, Filter, Edit3, Save, Activity, Heart, MapPin, Phone, CreditCard, Settings, Calendar, UserCheck, Building2, QrCode, Scan, Users } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { supabase, Database } from '../lib/supabase';
 import QRCodeGenerator from './QRCodeGenerator';
 import QRCodeScanner from './QRCodeScanner';
@@ -11,7 +11,8 @@ type Group = Database['public']['Tables']['groups']['Row'];
 type TempleEvent = Database['public']['Tables']['temple_events']['Row'];
 
 export default function DevoteeManagement() {
-  const { isCommittee } = useAuth();
+  const { userProfile } = useClerkAuth();
+  const isCommittee = userProfile?.role === 'committee' || userProfile?.role === 'admin';
   
   const [devotees, setDevotees] = useState<DevoteeProfile[]>([]);
   const [filteredDevotees, setFilteredDevotees] = useState<DevoteeProfile[]>([]);
@@ -796,18 +797,7 @@ export default function DevoteeManagement() {
     }
   };
 
-  if (!isCommittee) {
-    return (
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600">
-            You don't have permission to access devotee management.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Auth check is now handled by ProtectedRoute component
 
 
   const getStatusBadge = (status: string) => {

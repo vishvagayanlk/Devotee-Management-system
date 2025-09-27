@@ -98,17 +98,7 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  if (!isAdmin) {
-    return (
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
-          <XCircle className="w-16 h-16 text-red-600 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-red-800 mb-2">Access Denied</h2>
-          <p className="text-red-600">You don't have permission to access the admin panel.</p>
-        </div>
-      </div>
-    );
-  }
+  // Auth check is now handled by ProtectedRoute component
 
   if (loading) {
     return (
