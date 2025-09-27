@@ -58,6 +58,12 @@ function AppContent() {
     console.log('AppContent: isLoaded:', isLoaded, 'isSignedIn:', isSignedIn);
   }
 
+  // Handle handshake process
+  if (hasHandshake && isLoaded) {
+    console.log('AppContent: Handshake detected, processing...');
+    return <HandshakeHandler />;
+  }
+
   // Show timeout message if loading takes too long
   React.useEffect(() => {
     if (!isLoaded) {
@@ -104,11 +110,11 @@ function AppContent() {
   }
 
   // Check if this is a password reset flow (regardless of user state)
-  const accessToken = urlParams.get('access_token');
-  const refreshToken = urlParams.get('refresh_token');
-  const type = urlParams.get('type');
-  const error = urlParams.get('error');
-  const isPasswordResetFlow = accessToken || refreshToken || type === 'recovery' || error || window.location.pathname === '/reset-password';
+  const resetAccessToken = urlParams.get('access_token');
+  const resetRefreshToken = urlParams.get('refresh_token');
+  const resetType = urlParams.get('type');
+  const resetError = urlParams.get('error');
+  const isPasswordResetFlow = resetAccessToken || resetRefreshToken || resetType === 'recovery' || resetError || window.location.pathname === '/reset-password';
   
   // If we detect password reset parameters, show password reset page
   if (isPasswordResetFlow) {
@@ -139,8 +145,9 @@ function AppContent() {
       >
         <Routes>
           <Route path="/sign-in" element={<ClerkAuth mode="signin" />} />
-          <Route path="/sign-up" element={<SimpleSignUp />} />
+          <Route path="/sign-up" element={<SignUpPage />} />
           <Route path="/signup-success" element={<SignupSuccess />} />
+          <Route path="/signup-success/*" element={<SignupSuccess />} />
           <Route path="/sso-callback" element={<SSOCallback />} />
           <Route path="/debug" element={<ProfileDebugger />} />
           <Route path="/onboarding-debug" element={<OnboardingDebugger />} />
@@ -419,6 +426,20 @@ export default function App() {
       afterSignUpUrl="/signup-success"
       signInUrl="/sign-in"
       signUpUrl="/sign-up"
+      appearance={{
+        elements: {
+          rootBox: "w-full",
+          card: "shadow-lg border-0",
+          headerTitle: "text-text font-semibold",
+          headerSubtitle: "text-muted",
+          socialButtonsBlockButton: "border-theme hover:bg-theme-50",
+          formButtonPrimary: "bg-primary hover:bg-primary-600 text-white",
+          footerActionLink: "text-primary hover:text-primary-600",
+          identityPreviewText: "text-text",
+          formFieldInput: "border-theme focus:border-primary focus:ring-primary",
+          formFieldLabel: "text-text font-medium",
+        }
+      }}
     >
       <Router>
         <LanguageProvider>

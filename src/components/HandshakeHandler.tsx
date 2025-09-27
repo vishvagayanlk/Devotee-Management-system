@@ -11,10 +11,22 @@ const HandshakeHandler: React.FC = () => {
     const handleHandshake = async () => {
       console.log('HandshakeHandler: Processing handshake');
       console.log('HandshakeHandler: isLoaded:', isLoaded, 'isSignedIn:', isSignedIn);
+      console.log('HandshakeHandler: Current URL:', window.location.href);
       
       // Wait for Clerk to load
       if (!isLoaded) {
         console.log('HandshakeHandler: Waiting for Clerk to load...');
+        return;
+      }
+
+      // Check current path to determine where to redirect
+      const currentPath = window.location.pathname;
+      console.log('HandshakeHandler: Current path:', currentPath);
+
+      // If we're on signup-success, stay there
+      if (currentPath === '/signup-success') {
+        console.log('HandshakeHandler: Already on signup-success, staying here');
+        setIsProcessing(false);
         return;
       }
 
@@ -23,15 +35,15 @@ const HandshakeHandler: React.FC = () => {
         console.log('HandshakeHandler: User is signed in, redirecting to dashboard');
         navigate('/dashboard');
       } else {
-        console.log('HandshakeHandler: User not signed in, redirecting to sign-in');
-        navigate('/sign-in');
+        console.log('HandshakeHandler: User not signed in, redirecting to signup-success');
+        navigate('/signup-success');
       }
       
       setIsProcessing(false);
     };
 
     // Add a small delay to ensure Clerk has processed the handshake
-    const timeout = setTimeout(handleHandshake, 1000);
+    const timeout = setTimeout(handleHandshake, 2000);
     
     return () => clearTimeout(timeout);
   }, [isLoaded, isSignedIn, navigate]);

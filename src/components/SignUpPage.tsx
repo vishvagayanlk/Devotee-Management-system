@@ -1,17 +1,28 @@
 import React, { useEffect, useState } from 'react';
-import { SignUp } from '@clerk/clerk-react';
+import { SignUp, useAuth } from '@clerk/clerk-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContextFallback';
 import { Heart, Building2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const SignUpPage: React.FC = () => {
   const { templeSettings } = useTheme();
   const { t } = useLanguage();
+  const { isLoaded, isSignedIn } = useAuth();
+  const navigate = useNavigate();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Handle redirect if already signed in
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      console.log('SignUpPage: User already signed in, redirecting to dashboard');
+      navigate('/dashboard');
+    }
+  }, [isLoaded, isSignedIn, navigate]);
 
   if (!isMounted) {
     return (
@@ -72,6 +83,7 @@ const SignUpPage: React.FC = () => {
             redirectUrl="/signup-success"
             signInUrl="/sign-in"
             afterSignUpUrl="/signup-success"
+            forceRedirectUrl="/signup-success"
           />
         </div>
 
