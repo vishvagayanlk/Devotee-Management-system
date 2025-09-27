@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import { supabase } from '../lib/supabase';
 import { errorTracking } from '../lib/monitoring';
+import { isAdminEmail, getAdminRole, getAdminStatus, getAdminApproval } from '../config/adminConfig';
 
 interface UserProfile {
   id: string;
@@ -18,7 +19,7 @@ interface UserProfile {
   group_id?: string | null;
   is_approved: boolean;
   status: 'pending' | 'approved' | 'rejected';
-  role: 'admin' | 'devotee' | 'committee';
+  role: 'admin' | 'devotee' | 'committee' | 'super_admin';
   created_at: string;
   updated_at: string;
   is_profile_complete?: boolean;
@@ -326,8 +327,9 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
             console.log('Minimal profile creation also failed, checking for existing admin profile...');
             
             // Check if this is an admin email and try to find existing admin profile
-            const isAdminEmail = user.primaryEmailAddress?.emailAddress === 'admin@temple.com';
-            if (isAdminEmail) {
+            const userEmail = user.primaryEmailAddress?.emailAddress || '';
+            const isAdmin = isAdminEmail(userEmail);
+            if (isAdmin) {
               console.log('Admin email detected, looking for existing admin profile...');
               const { data: existingAdminProfile, error: adminError } = await supabase
                 .from('user_profiles')
@@ -363,9 +365,9 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
                   clerk_id: user.id,
                   email: user.primaryEmailAddress?.emailAddress || '',
                   full_name: user.fullName || 'Temple Administrator',
-                  is_approved: true,
-                  status: 'approved' as const,
-                  role: 'admin' as const,
+                  is_approved: getAdminApproval(userEmail),
+                  status: getAdminStatus(userEmail),
+                  role: getAdminRole(userEmail),
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
                 };
@@ -444,10 +446,11 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
         console.log('Creating mock profile for pending approval user due to database error');
         
         // Check if this is an admin email
-        const isAdminEmail = user.primaryEmailAddress?.emailAddress === 'admin@temple.com';
-        console.log('Is admin email:', isAdminEmail);
+        const userEmail = user.primaryEmailAddress?.emailAddress || '';
+        const isAdmin = isAdminEmail(userEmail);
+        console.log('Is admin email:', isAdmin);
         
-        if (isAdminEmail) {
+        if (isAdmin) {
           // Try to find existing admin profile first
           console.log('Admin email detected, looking for existing admin profile...');
           const { data: existingAdminProfile, error: adminError } = await supabase
@@ -482,9 +485,9 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
               clerk_id: user.id,
               email: user.primaryEmailAddress?.emailAddress || '',
               full_name: user.fullName || 'Temple Administrator',
-              is_approved: true,
-              status: 'approved' as const,
-              role: 'admin' as const,
+              is_approved: getAdminApproval(userEmail),
+              status: getAdminStatus(userEmail),
+              role: getAdminRole(userEmail),
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             };
@@ -637,18 +640,19 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
     
     console.log('Creating mock profile for pending approval user');
     
-    // Check if this is an admin email
-    const isAdminEmail = user.primaryEmailAddress?.emailAddress === 'admin@temple.com';
-    console.log('Is admin email:', isAdminEmail);
+    const userEmail = user.primaryEmailAddress?.emailAddress || '';
+    const isAdmin = isAdminEmail(userEmail);
+    console.log('User email:', userEmail);
+    console.log('Is admin email:', isAdmin);
     
     const mockProfile = {
       id: user.id,
       clerk_id: user.id,
-      email: user.primaryEmailAddress?.emailAddress || '',
-      full_name: user.fullName || '',
-      is_approved: isAdminEmail, // Set to true for admin email
-      status: isAdminEmail ? 'approved' as const : 'pending' as const,
-      role: isAdminEmail ? 'admin' as const : 'devotee' as const,
+      email: userEmail,
+      full_name: user.fullName || (isAdmin ? 'Temple Administrator' : ''),
+      is_approved: getAdminApproval(userEmail),
+      status: getAdminStatus(userEmail),
+      role: getAdminRole(userEmail),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
