@@ -9,8 +9,7 @@ import {
   User,
   Menu,
   X,
-  Heart,
-  Globe
+  Heart
 } from 'lucide-react';
 import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { UserButton } from '@clerk/clerk-react';
@@ -114,7 +113,7 @@ export default function Layout({ children }: LayoutProps) {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-text truncate">{userProfile?.full_name}</p>
               <p className="text-xs text-muted capitalize truncate">
-                {userProfile?.role === 'devotee' ? 'Devotee' : userProfile?.role === 'committee' ? 'Committee Member' : 'Admin'}
+                {userProfile?.role === 'devotee' ? t('user.devotee') : userProfile?.role === 'committee' ? t('user.committee_member') : t('user.admin')}
               </p>
               <div className="flex items-center mt-1">
                 <div
@@ -123,12 +122,12 @@ export default function Layout({ children }: LayoutProps) {
                   }`}
                 />
                 <span className="text-xs text-muted capitalize truncate">
-                  {userProfile?.is_approved ? 'Active' : 'Pending Approval'}
+                  {userProfile?.is_approved ? t('user.active') : t('user.pending_approval')}
                 </span>
               </div>
               {!userProfile?.is_approved && (
                 <div className="mt-2 text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
-                  Limited Access
+                  {t('user.limited_access')}
                 </div>
               )}
             </div>
@@ -179,7 +178,7 @@ export default function Layout({ children }: LayoutProps) {
             className="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg transition-all duration-200 text-red-600 hover:bg-red-50 hover:text-red-700"
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
-            <span className="text-sm font-medium">Sign Out</span>
+            <span className="text-sm font-medium">{t('auth.sign_out')}</span>
           </button>
         </div>
       </div>
@@ -209,15 +208,26 @@ export default function Layout({ children }: LayoutProps) {
               
               {/* Language Switcher */}
               <div className="flex items-center space-x-2">
-                <Globe className="w-4 h-4 text-muted" />
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value as 'en' | 'si')}
-                  className="text-sm bg-surface border border-theme rounded px-2 py-1 text-text focus:ring-2 focus:ring-primary focus:border-transparent"
+                <button
+                  onClick={() => setLanguage('en')}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    language === 'en' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
                 >
-                  <option value="en">English</option>
-                  <option value="si">සිංහල</option>
-                </select>
+                  English
+                </button>
+                <button
+                  onClick={() => setLanguage('si')}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    language === 'si' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  සිංහල
+                </button>
               </div>
             </div>
           </div>

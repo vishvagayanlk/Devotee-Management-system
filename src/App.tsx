@@ -5,7 +5,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ClerkProvider } from '@clerk/clerk-react';
 import { ClerkAuthProvider, useClerkAuth } from './contexts/ClerkAuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
-import { LanguageProvider } from './contexts/LanguageContextFallback';
+import { LanguageProvider, useLanguage } from './contexts/LanguageContextFallback';
 import ClerkAuth from './components/ClerkAuth';
 import ProfileDebugger from './components/ProfileDebugger';
 import OnboardingDebugger from './components/OnboardingDebugger';
@@ -30,6 +30,7 @@ const AdminPanel = lazy(() => import('./components/AdminPanel'));
 function AppContent() {
   const { user, isLoaded, isSignedIn, userProfile } = useClerkAuth();
   const { templeSettings } = useTheme();
+  const { t } = useLanguage();
   const [showTimeoutMessage, setShowTimeoutMessage] = React.useState(false);
 
   // Debug logging for handshake URLs
@@ -192,10 +193,10 @@ function AppContent() {
                 </div>
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-yellow-800">
-                    Account Pending Approval
+                    {t('approval.pending_title')}
                   </h3>
                   <div className="mt-2 text-sm text-yellow-700">
-                    <p>Your account is pending approval from an administrator. You have limited access until approved.</p>
+                    <p>{t('approval.pending_message')}</p>
                   </div>
                 </div>
               </div>
@@ -205,10 +206,10 @@ function AppContent() {
             <div className="space-y-6">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                  Welcome, {userProfile.full_name}!
+                  {t('approval.welcome', { name: userProfile.full_name })}
                 </h1>
                 <p className="text-gray-600">
-                  Your account is being reviewed. Here's what you can do while waiting for approval:
+                  {t('approval.review_message')}
                 </p>
               </div>
 
@@ -222,16 +223,16 @@ function AppContent() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 ml-3">Profile</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 ml-3">{t('nav.profile')}</h3>
                   </div>
                   <p className="text-gray-600 text-sm mb-4">
-                    View and update your profile information.
+                    {t('approval.profile_description')}
                   </p>
                   <button
                     onClick={() => window.location.href = '/profile'}
                     className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
                   >
-                    View Profile
+                    {t('approval.view_profile')}
                   </button>
                 </div>
 
@@ -243,22 +244,22 @@ function AppContent() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 ml-3">Status</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 ml-3">{t('common.status')}</h3>
                   </div>
                   <p className="text-gray-600 text-sm mb-4">
-                    Check your approval status and account details.
+                    {t('approval.status_description')}
                   </p>
                   <div className="text-sm">
                     <div className="flex justify-between mb-1">
-                      <span className="text-gray-500">Status:</span>
-                      <span className="text-yellow-600 font-medium">Pending</span>
+                      <span className="text-gray-500">{t('common.status')}:</span>
+                      <span className="text-yellow-600 font-medium">{t('approval.pending')}</span>
                     </div>
                     <div className="flex justify-between mb-1">
-                      <span className="text-gray-500">Role:</span>
-                      <span className="text-gray-700 capitalize">{userProfile.role}</span>
+                      <span className="text-gray-500">{t('common.role')}:</span>
+                      <span className="text-gray-700 capitalize">{userProfile.role === 'devotee' ? t('user.devotee') : userProfile.role === 'committee' ? t('user.committee_member') : t('user.admin')}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Email:</span>
+                      <span className="text-gray-500">{t('approval.email')}:</span>
                       <span className="text-gray-700 text-xs">{userProfile.email}</span>
                     </div>
                   </div>
@@ -272,16 +273,16 @@ function AppContent() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 ml-3">Help</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 ml-3">උදව්</h3>
                   </div>
                   <p className="text-gray-600 text-sm mb-4">
-                    Need assistance? Contact the temple administration.
+                    {t('approval.help_description')}
                   </p>
                   <button
                     onClick={() => window.location.reload()}
                     className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm"
                   >
-                    Refresh Status
+                    {t('approval.refresh_status')}
                   </button>
                 </div>
               </div>
