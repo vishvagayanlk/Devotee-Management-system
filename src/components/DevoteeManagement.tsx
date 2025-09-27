@@ -11,8 +11,8 @@ type Group = Database['public']['Tables']['groups']['Row'];
 type TempleEvent = Database['public']['Tables']['temple_events']['Row'];
 
 export default function DevoteeManagement() {
-  const { userProfile } = useClerkAuth();
-  const isCommittee = userProfile?.role === 'committee' || userProfile?.role === 'admin';
+  const { userProfile, profileRefreshTrigger } = useClerkAuth();
+  const isCommittee = userProfile?.role === 'committee' || userProfile?.role === 'admin' || userProfile?.role === 'super_admin';
   
   const [devotees, setDevotees] = useState<DevoteeProfile[]>([]);
   const [filteredDevotees, setFilteredDevotees] = useState<DevoteeProfile[]>([]);
@@ -86,16 +86,42 @@ export default function DevoteeManagement() {
   const [deletingDevotee, setDeletingDevotee] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  // Debug logging in useEffect to avoid accessing state before initialization
   useEffect(() => {
+    console.log('DevoteeManagement: Component state', {
+      userProfile,
+      isCommittee,
+      userRole: userProfile?.role,
+      hasUserProfile: !!userProfile,
+      loading
+    });
+  }, [userProfile, isCommittee, loading]);
+
+  useEffect(() => {
+    console.log('DevoteeManagement: useEffect triggered', {
+      isCommittee,
+      userProfile,
+      userRole: userProfile?.role,
+      hasUserProfile: !!userProfile
+    });
+    
     if (isCommittee) {
+      console.log('DevoteeManagement: User is committee/admin, fetching data...');
       fetchDevotees();
       fetchGroups();
       fetchEvents();
+    } else {
+      console.log('DevoteeManagement: User is not committee/admin, skipping data fetch');
     }
-  }, [isCommittee]);
+  }, [isCommittee, userProfile, profileRefreshTrigger]);
 
   // Filter and sort devotees whenever filters change
   useEffect(() => {
+    if (!devotees || !Array.isArray(devotees) || devotees.length === 0) {
+      setFilteredDevotees([]);
+      return;
+    }
+    
     let filtered = [...devotees];
 
     // Search filter
@@ -168,7 +194,10 @@ export default function DevoteeManagement() {
 
   const fetchDevotees = async () => {
     try {
-      const { data, error } = await supabase
+      console.log('DevoteeManagement: Fetching devotees...');
+      
+      // First try with the group relationship
+      let { data, error } = await supabase
         .from('user_profiles')
         .select(`
           *,
@@ -180,7 +209,27 @@ export default function DevoteeManagement() {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      // If that fails due to missing foreign key, try without the group relationship
+      if (error && error.code === 'PGRST200') {
+        console.log('DevoteeManagement: Group relationship not found, fetching without groups...');
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (simpleError) {
+          console.error('DevoteeManagement: Error fetching devotees (simple):', simpleError);
+          throw simpleError;
+        }
+        
+        data = simpleData;
+        error = null;
+      } else if (error) {
+        console.error('DevoteeManagement: Error fetching devotees:', error);
+        throw error;
+      }
+      
+      console.log('DevoteeManagement: Fetched devotees:', data?.length || 0, 'records');
       setDevotees(data || []);
     } catch (error) {
       console.error('Error fetching devotees:', error);
@@ -205,15 +254,27 @@ export default function DevoteeManagement() {
 
   const fetchEvents = async () => {
     try {
+      console.log('DevoteeManagement: Fetching events...');
       const { data, error } = await supabase
         .from('temple_events')
         .select('*')
         .order('start_date', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST205') {
+          console.log('DevoteeManagement: temple_events table not found, skipping events...');
+          setEvents([]);
+          return;
+        }
+        throw error;
+      }
+      
+      console.log('DevoteeManagement: Fetched events:', data?.length || 0, 'records');
       setEvents(data || []);
     } catch (error) {
       console.error('Error fetching events:', error);
+      // Set empty array if table doesn't exist
+      setEvents([]);
     }
   };
 
@@ -833,7 +894,7 @@ export default function DevoteeManagement() {
 
   const handleQRScanResult = (devoteeData: any) => {
     // Find the devotee by ID and scroll to them
-    const devotee = devotees.find(d => d.id === devoteeData.id);
+    const devotee = devotees?.find(d => d.id === devoteeData.id);
     if (devotee) {
       setSearchTerm(devotee.full_name);
       setStatusFilter('all');
@@ -915,6 +976,43 @@ export default function DevoteeManagement() {
                 <X className="w-4 h-4" />
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Debug Header - Temporarily disabled to fix initialization error */}
+      {false && process.env.NODE_ENV === 'development' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="text-sm font-medium text-blue-800">Debug: DevoteeManagement State</h3>
+          <p className="text-sm text-blue-700">
+            User Role: {userProfile?.role || 'None'} | 
+            Is Committee: {isCommittee ? 'Yes' : 'No'} | 
+            Devotees: {devotees?.length || 0} | 
+            Filtered: {filteredDevotees?.length || 0} | 
+            Loading: {loading ? 'Yes' : 'No'}
+          </p>
+          <div className="mt-2 space-x-2">
+            <button
+              onClick={() => {
+                console.log('Manually triggering data fetch...');
+                fetchDevotees();
+                fetchGroups();
+                fetchEvents();
+              }}
+              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+            >
+              Force Fetch Data
+            </button>
+            <button
+              onClick={() => {
+                console.log('Current devotees:', devotees);
+                console.log('Current groups:', groups);
+                console.log('Current events:', events);
+              }}
+              className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+            >
+              Log Data
+            </button>
           </div>
         </div>
       )}
@@ -1262,7 +1360,7 @@ export default function DevoteeManagement() {
                             <p className="text-sm text-gray-600">{group.description}</p>
                           )}
                           <p className="text-xs text-gray-500">
-                            {devotees.filter(d => d.group_id === group.id).length} members
+                            {devotees?.filter(d => d.group_id === group.id).length || 0} members
                           </p>
                         </div>
                       </div>
@@ -1439,7 +1537,7 @@ export default function DevoteeManagement() {
                                 <div>
                                   <p className="text-sm font-medium text-gray-900">{group.name}</p>
                                   <p className="text-xs text-gray-500">
-                                    {devotees.filter(d => d.group_id === group.id).length} members
+                                    {devotees?.filter(d => d.group_id === group.id).length || 0} members
                                   </p>
                                 </div>
                               </div>
@@ -1958,7 +2056,7 @@ export default function DevoteeManagement() {
               </select>
             </div>
             <div className="text-sm text-gray-500 text-center sm:text-left">
-              Showing {filteredDevotees.length} of {devotees.length} devotees
+              Showing {filteredDevotees?.length || 0} of {devotees?.length || 0} devotees
             </div>
           </div>
         </div>

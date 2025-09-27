@@ -39,7 +39,7 @@ const DashboardCard = memo(({ card, index }: { card: any; index: number }) => {
 DashboardCard.displayName = 'DashboardCard';
 
 export default function Dashboard() {
-  const { userProfile, forceCreateProfile } = useClerkAuth();
+  const { userProfile, forceCreateProfile, profileRefreshTrigger } = useClerkAuth();
   const profile = userProfile;
   const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
   const isCommittee = profile?.role === 'admin' || profile?.role === 'committee' || profile?.role === 'super_admin';
@@ -73,6 +73,17 @@ export default function Dashboard() {
     isAdmin,
     isCommittee
   );
+
+  // Debug logging
+  console.log('Dashboard: Profile data', {
+    profile,
+    isAdmin,
+    isCommittee,
+    stats,
+    loading,
+    error,
+    profileRefreshTrigger
+  });
 
   // Memoize callback functions to prevent unnecessary re-renders
   const handleShowQRGenerator = useCallback(() => setShowQRGenerator(true), []);
@@ -214,6 +225,11 @@ export default function Dashboard() {
                     Error: {error.message}
                   </p>
                 )}
+                {!userProfile && !loading && (
+                  <p className="text-sm text-yellow-700 mt-1">
+                    ⚠️ No profile found - this might indicate a database issue
+                  </p>
+                )}
               </div>
               <div className="flex space-x-2">
                 <button
@@ -232,7 +248,63 @@ export default function Dashboard() {
                   onClick={() => window.location.href = '/profile-debug'}
                   className="bg-gray-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors"
                 >
-                  Debug Page
+                  Profile Debug
+                </button>
+                <button
+                  onClick={() => window.location.href = '/profile-creation-debug'}
+                  className="bg-orange-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-orange-700 transition-colors"
+                >
+                  Creation Debug
+                </button>
+                <button
+                  onClick={() => {
+                    // Test profile creation directly
+                    console.log('Testing profile creation...');
+                    const testProfile = {
+                      id: crypto.randomUUID(),
+                      clerk_id: 'test-' + Date.now(),
+                      email: 'test@example.com',
+                      full_name: 'Test User',
+                      is_approved: false,
+                      role: 'devotee',
+                      status: 'pending',
+                    };
+                    
+                    // Test direct Supabase insertion
+                    import('../lib/supabase').then(({ supabase }) => {
+                      supabase
+                        .from('user_profiles')
+                        .insert(testProfile)
+                        .select()
+                        .single()
+                        .then(({ data, error }) => {
+                          if (error) {
+                            console.error('Direct test failed:', error);
+                          } else {
+                            console.log('Direct test success:', data);
+                            // Clean up
+                            supabase
+                              .from('user_profiles')
+                              .delete()
+                              .eq('id', data.id);
+                          }
+                        });
+                    });
+                  }}
+                  className="bg-purple-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-purple-700 transition-colors"
+                >
+                  Test DB
+                </button>
+                <button
+                  onClick={() => {
+                    // Force refresh all data
+                    console.log('Force refreshing all data...');
+                    refetch();
+                    window.location.reload();
+                  }}
+                  className="bg-yellow-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-yellow-700 transition-colors"
+                >
+                  Force Refresh
                 </button>
               </div>
             </div>

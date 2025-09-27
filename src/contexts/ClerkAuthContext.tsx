@@ -31,6 +31,8 @@ interface ClerkAuthContextType {
   isSignedIn: boolean;
   userProfile: UserProfile | null;
   isProfileComplete: boolean;
+  useEffectCallCount: number;
+  profileRefreshTrigger: number;
   signOut: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
   approveUser: (userId: string) => Promise<void>;
@@ -63,24 +65,36 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
   const [isProfileComplete, setIsProfileComplete] = useState<boolean>(false);
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
+  const [useEffectCallCount, setUseEffectCallCount] = useState(0);
+  const [profileRefreshTrigger, setProfileRefreshTrigger] = useState(0);
 
   // Create or update user profile in Supabase when Clerk user changes
   useEffect(() => {
-    console.log('ClerkAuthContext: useEffect triggered', {
+    const callCount = useEffectCallCount + 1;
+    setUseEffectCallCount(callCount);
+    
+    console.log(`🔄 ClerkAuthContext: useEffect triggered (call #${callCount})`, {
       isLoaded,
       isSignedIn,
       hasUser: !!user,
       isCreatingProfile,
       hasUserProfile: !!userProfile,
       userId: user?.id,
-      userEmail: user?.primaryEmailAddress?.emailAddress
+      userEmail: user?.primaryEmailAddress?.emailAddress,
+      userFullName: user?.fullName,
+      timestamp: new Date().toISOString()
     });
 
     if (isLoaded && isSignedIn && user && !isCreatingProfile) {
       if (!userProfile) {
         console.log('Clerk user authenticated, creating/updating profile...');
         setIsCreatingProfile(true);
-        createOrUpdateUserProfile();
+        createOrUpdateUserProfile().catch((error) => {
+          console.error('Profile creation failed in useEffect:', error);
+          setIsProfileLoaded(true);
+          setIsCreatingProfile(false);
+          // Don't set a mock profile - let the UI handle the error
+        });
       } else {
         console.log('User profile already exists, setting as loaded');
         setIsProfileLoaded(true);
@@ -92,7 +106,7 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
       setIsProfileLoaded(true);
       setIsCreatingProfile(false);
     }
-  }, [isLoaded, isSignedIn, user, isCreatingProfile, userProfile]);
+  }, [isLoaded, isSignedIn, user]);
 
   // Reset profile when user changes (for new signups)
   useEffect(() => {
@@ -245,6 +259,10 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
           role: updatedProfile.role,
           is_approved: updatedProfile.is_approved
         });
+        // Force a re-render by updating the profile loaded state
+        setIsProfileLoaded(true);
+        // Trigger a refresh to update all components
+        setProfileRefreshTrigger(prev => prev + 1);
       } else {
         console.log('Creating new profile...');
         
@@ -253,10 +271,18 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
         const isAdmin = isAdminEmail(userEmail);
         
         // Create profile data matching the actual database schema
+        const fullName = user.fullName || '';
+        const nameParts = fullName.split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
         const profileData = {
+          id: crypto.randomUUID(), // Generate a UUID for the profile
           clerk_id: user.id,
           email: userEmail,
-          full_name: user.fullName || '',
+          full_name: fullName,
+          first_name: firstName,
+          last_name: lastName,
           is_approved: isAdmin, // Admin emails are automatically approved
           role: isAdmin ? getAdminRole(userEmail) : 'devotee',
           status: isAdmin ? 'approved' as const : 'pending' as const,
@@ -274,23 +300,45 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
 
         if (createError) {
           console.error('Error creating profile:', createError);
-          // Create mock profile as fallback
-          const mockProfile = {
-            id: user.id,
+          console.error('Profile data that failed:', profileData);
+          
+          // Try to create with minimal data if the full data fails
+          const minimalProfileData = {
+            id: crypto.randomUUID(), // Generate a UUID for the profile
             clerk_id: user.id,
             email: userEmail,
-            full_name: user.fullName || '',
+            full_name: fullName || 'User',
             is_approved: isAdmin,
             role: isAdmin ? getAdminRole(userEmail) : 'devotee',
             status: isAdmin ? 'approved' as const : 'pending' as const,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
           };
-          setUserProfile(mockProfile);
-          console.log('Mock profile created as fallback:', mockProfile);
+          
+          console.log('Trying with minimal profile data:', minimalProfileData);
+          
+          const { data: minimalProfile, error: minimalError } = await supabase
+            .from('user_profiles')
+            .insert(minimalProfileData)
+            .select()
+            .single();
+            
+          if (minimalError) {
+            console.error('Minimal profile creation also failed:', minimalError);
+            throw new Error(`Failed to create user profile: ${createError.message}. Minimal profile also failed: ${minimalError.message}`);
+          } else {
+            setUserProfile(minimalProfile);
+            console.log('Minimal profile created successfully:', minimalProfile);
+            // Force a re-render by updating the profile loaded state
+            setIsProfileLoaded(true);
+            // Trigger a refresh to update all components
+            setProfileRefreshTrigger(prev => prev + 1);
+          }
         } else {
           setUserProfile(newProfile);
           console.log('Profile created successfully:', newProfile);
+          // Force a re-render by updating the profile loaded state
+          setIsProfileLoaded(true);
+          // Trigger a refresh to update all components
+          setProfileRefreshTrigger(prev => prev + 1);
         }
       }
 
@@ -305,24 +353,10 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
       setIsProfileLoaded(true);
       setIsCreatingProfile(false);
       
-      // Create a mock profile as fallback
-      const userEmail = user.primaryEmailAddress?.emailAddress || '';
-      const isAdmin = isAdminEmail(userEmail);
-      
-      const mockProfile = {
-        id: user.id,
-        clerk_id: user.id,
-        email: userEmail,
-        full_name: user.fullName || '',
-        is_approved: isAdmin,
-        role: isAdmin ? getAdminRole(userEmail) : 'devotee',
-        status: isAdmin ? 'approved' as const : 'pending' as const,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      
-      setUserProfile(mockProfile);
-      console.log('Mock profile created as fallback:', mockProfile);
+      // Don't create mock profiles - let the error bubble up
+      // This will help us debug the actual issue
+      console.error('Profile creation failed completely. User will need to refresh or contact support.');
+      throw error; // Re-throw the error so it can be handled by the UI
     }
   };
 
@@ -465,6 +499,7 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
     
     console.log('Force creating profile...');
     setIsCreatingProfile(true);
+    setIsProfileLoaded(false);
     await createOrUpdateUserProfile();
   };
 
@@ -492,6 +527,8 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
     isSignedIn: isSignedIn || false,
     userProfile,
     isProfileComplete,
+    useEffectCallCount,
+    profileRefreshTrigger,
     signOut,
     refreshUserProfile,
     approveUser,

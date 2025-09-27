@@ -14,6 +14,7 @@ import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import SignUpPage from './components/SignUpPage';
 import ProfileDebugger from './components/ProfileDebugger';
+import ProfileCreationDebug from './components/ProfileCreationDebug';
 
 // Lazy load components for better performance
 const DashboardWrapper = lazy(() => import('./components/DashboardWrapper'));
@@ -128,6 +129,7 @@ function AppContent() {
           <Route path="/sso-callback" element={<SSOCallback />} />
           <Route path="/debug" element={<ProfileDebugger />} />
           <Route path="/profile-debug" element={<ProfileDebugger />} />
+          <Route path="/profile-creation-debug" element={<ProfileCreationDebug />} />
           <Route path="*" element={<ClerkAuth mode="signin" />} />
         </Routes>
       </div>
@@ -380,6 +382,11 @@ function AppContent() {
             <Route path="/admin" element={
               <ProtectedRoute requireAuth={true} requireApproved={true} requireAdmin={true}>
                 <AdminPanel />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile-creation-debug" element={
+              <ProtectedRoute requireAuth={true} requireApproved={false}>
+                <ProfileCreationDebug />
               </ProtectedRoute>
             } />
             {/* Redirect any unknown routes to dashboard */}
