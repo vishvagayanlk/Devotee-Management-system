@@ -55,8 +55,24 @@ export const validatePhoneNumber = (phone: string): boolean => {
 export const validateEmail = (email: string): boolean => {
   if (!email) return false;
   
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email.trim().toLowerCase());
+  // More comprehensive email validation
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  const trimmedEmail = email.trim().toLowerCase();
+  
+  // Check for basic structure
+  if (!emailRegex.test(trimmedEmail)) return false;
+  
+  // Check for valid length
+  if (trimmedEmail.length > 254) return false;
+  
+  // Check for valid local part (before @)
+  const [localPart, domain] = trimmedEmail.split('@');
+  if (!localPart || localPart.length > 64) return false;
+  
+  // Check for valid domain
+  if (!domain || domain.length > 253) return false;
+  
+  return true;
 };
 
 /**

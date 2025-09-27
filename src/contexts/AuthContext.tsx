@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase, Database } from '../lib/supabase';
+import { validateEmail } from '../utils/security';
 
 type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
 
@@ -380,10 +381,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       fullName: sanitizedData.fullName,
       nicNumber: sanitizedData.nicNumber,
       address: sanitizedData.address,
-      phone: sanitizedData.phone
+      phone: sanitizedData.phone,
+      groupId: groupId
+    });
+    
+    // Additional email validation
+    console.log('Email validation check:', {
+      originalEmail: email,
+      sanitizedEmail: sanitizedData.email,
+      emailLength: sanitizedData.email.length,
+      emailChars: sanitizedData.email.split('').map(c => c.charCodeAt(0)),
+      isValidEmail: validateEmail(sanitizedData.email)
     });
 
     try {
+      // Check if email already exists in user_profiles
+      const { data: existingProfile } = await supabase
+        .from('user_profiles')
+        .select('id, email')
+        .eq('email', sanitizedData.email)
+        .single();
+
+      if (existingProfile) {
+        throw new Error('An account with this email already exists. Please use a different email or try logging in.');
+      }
+
+      // Check if user is already logged in
+      const { data: existingUser } = await supabase.auth.getUser();
+      if (existingUser.user) {
+        throw new Error('User is already logged in. Please sign out first.');
+      }
+
+      // Try signup with minimal data first
       const { data, error } = await supabase.auth.signUp({
         email: sanitizedData.email,
         password,
@@ -403,7 +432,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Sign up error details:', error);
-        throw new Error(`Sign up failed: ${error.message}`);
+        console.error('Error code:', error.status);
+        console.error('Error message:', error.message);
+        console.error('Error details:', error.details);
+        
+        // Try a simpler signup without metadata if the first attempt fails
+        if (error.message.includes('invalid') || error.message.includes('Email')) {
+          console.log('Trying simpler signup without metadata...');
+          const { data: simpleData, error: simpleError } = await supabase.auth.signUp({
+            email: sanitizedData.email,
+            password,
+          });
+          
+          if (simpleError) {
+            console.error('Simple signup also failed:', simpleError);
+            throw new Error(`Sign up failed: ${error.message} (Code: ${error.status}). Simple signup also failed: ${simpleError.message}`);
+          } else {
+            console.log('Simple signup succeeded, but metadata signup failed');
+            throw new Error(`Sign up failed: ${error.message} (Code: ${error.status}). This might be due to metadata validation.`);
+          }
+        }
+        
+        throw new Error(`Sign up failed: ${error.message} (Code: ${error.status})`);
       }
 
       if (data.user) {

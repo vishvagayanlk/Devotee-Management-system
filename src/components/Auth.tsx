@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, User, Mail, Lock, UserPlus, LogIn, MapPin, Phone, CreditCard, Eye, EyeOff, Bug, Building2, Check } from 'lucide-react';
+import { Shield, User, Mail, Lock, UserPlus, LogIn, MapPin, Phone, CreditCard, Eye, EyeOff, Bug, Building2, Check, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { validateNIC, validatePhoneNumber, validateEmail, validatePassword, RateLimiter } from '../utils/security';
@@ -20,6 +20,8 @@ export default function Auth() {
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [signupEmail, setSignupEmail] = useState('');
   
   // Debug: Monitor state changes
   useEffect(() => {
@@ -189,8 +191,15 @@ export default function Auth() {
           formData.fullName, 
           formData.nicNumber, 
           formData.address, 
-          formData.phone
+          formData.phone,
+          formData.groupId
         );
+        
+        // Show success screen after successful signup
+        setSignupEmail(formData.email);
+        setSignupSuccess(true);
+        setLoading(false);
+        return;
       }
     } catch (err: any) {
       console.error('Auth error:', err);
@@ -222,6 +231,8 @@ export default function Auth() {
     setFieldErrors({});
     setShowForgotPassword(false);
     setForgotPasswordSuccess(false);
+    setSignupSuccess(false);
+    setSignupEmail('');
     setFormData({
       email: '',
       password: '',
@@ -297,6 +308,160 @@ export default function Auth() {
       setDebugInfo(`Debug test failed: ${err.message}`);
     }
   };
+
+  // Show forgot password success screen
+  if (forgotPasswordSuccess) {
+    return (
+      <div className="min-h-screen bg-gradient-primary flex items-center justify-center p-2 sm:p-4" style={{
+        background: `linear-gradient(135deg, ${templeSettings?.primary_color || '#FEF7ED'}, ${templeSettings?.secondary_color || '#FED7AA'})`
+      }}>
+        <div className="max-w-md w-full space-y-6 sm:space-y-8">
+          <div className="bg-white rounded-lg shadow-xl p-4 sm:p-6 lg:p-8">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-6">
+                <Mail className="h-8 w-8 text-blue-600" />
+              </div>
+              
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
+                Password Reset Sent!
+              </h2>
+              
+              <div className="space-y-4">
+                <p className="text-gray-600 text-sm sm:text-base">
+                  We've sent a password reset link to:
+                </p>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="font-medium text-gray-900 break-all">
+                    {forgotPasswordEmail}
+                  </p>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-start space-x-3">
+                    <Mail className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-gray-900">Check your inbox</p>
+                      <p className="text-xs text-gray-600">Click the reset link in the email to create a new password</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <Clock className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-gray-900">Link expires</p>
+                      <p className="text-xs text-gray-600">The reset link is valid for 24 hours</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="pt-4">
+                  <button
+                    onClick={() => {
+                      setForgotPasswordSuccess(false);
+                      setForgotPasswordEmail('');
+                      setShowForgotPassword(false);
+                    }}
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+                    style={{
+                      backgroundColor: templeSettings?.primary_color || '#F97316'
+                    }}
+                  >
+                    Back to Login
+                  </button>
+                </div>
+                
+                <div className="text-xs text-gray-500">
+                  <p>Didn't receive the email? Check your spam folder or try again.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show signup success screen
+  if (signupSuccess) {
+    return (
+      <div className="min-h-screen bg-gradient-primary flex items-center justify-center p-2 sm:p-4" style={{
+        background: `linear-gradient(135deg, ${templeSettings?.primary_color || '#FEF7ED'}, ${templeSettings?.secondary_color || '#FED7AA'})`
+      }}>
+        <div className="max-w-md w-full space-y-6 sm:space-y-8">
+          <div className="bg-white rounded-lg shadow-xl p-4 sm:p-6 lg:p-8">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
+                <Check className="h-8 w-8 text-green-600" />
+              </div>
+              
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
+                Registration Successful!
+              </h2>
+              
+              <div className="space-y-4">
+                <p className="text-gray-600 text-sm sm:text-base">
+                  Thank you for registering with our temple. We've sent a confirmation email to:
+                </p>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="font-medium text-gray-900 break-all">
+                    {signupEmail}
+                  </p>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-start space-x-3">
+                    <Mail className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-gray-900">Check your inbox</p>
+                      <p className="text-xs text-gray-600">Click the confirmation link in the email to activate your account</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <Shield className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-gray-900">Account approval</p>
+                      <p className="text-xs text-gray-600">Your account will be reviewed by the temple committee</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <User className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-gray-900">Access granted</p>
+                      <p className="text-xs text-gray-600">You'll receive access once approved</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="pt-4">
+                  <button
+                    onClick={() => {
+                      setSignupSuccess(false);
+                      setSignupEmail('');
+                      setIsLogin(true);
+                    }}
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+                    style={{
+                      backgroundColor: templeSettings?.primary_color || '#F97316'
+                    }}
+                  >
+                    Back to Login
+                  </button>
+                </div>
+                
+                <div className="text-xs text-gray-500">
+                  <p>Didn't receive the email? Check your spam folder or contact the temple committee.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-primary flex items-center justify-center p-2 sm:p-4" style={{
