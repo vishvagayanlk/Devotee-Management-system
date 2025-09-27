@@ -91,7 +91,7 @@ export function useCachedData<T>(
     return () => {
       isMountedRef.current = false;
     };
-  }, [fetchData, refetchOnMount]);
+  }, [fetchData, refetchOnMount, key]);
 
   // Refetch on window focus
   useEffect(() => {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, Calendar as CalendarIcon, Clock, Save, X, MapPin, Users, Check, RefreshCw } from 'lucide-react';
 import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { supabase, Database } from '../lib/supabase';
+import { invalidateEventsCache, invalidateDashboardCache } from '../utils/queryCache';
 
 type TempleEvent = Database['public']['Tables']['temple_events']['Row'];
 
@@ -253,6 +254,9 @@ export default function TempleEvents() {
         }
       }
 
+      // Invalidate caches and refresh events
+      invalidateEventsCache();
+      invalidateDashboardCache();
       await fetchEvents();
       setShowEditor(false);
       setEditingEvent(null);
@@ -320,6 +324,10 @@ export default function TempleEvents() {
         .eq('id', eventId);
 
       if (error) throw error;
+      
+      // Invalidate caches and refresh events
+      invalidateEventsCache();
+      invalidateDashboardCache();
       await fetchEvents();
       setNotification({ 
         type: 'success', 

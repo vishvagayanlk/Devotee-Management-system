@@ -272,10 +272,8 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
         
         // Create profile data matching the actual database schema
         const fullName = user.fullName || '';
-        const nameParts = fullName.split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
         
+        // Create minimal profile data that works with current schema
         const profileData: any = {
           id: crypto.randomUUID(), // Generate a UUID for the profile
           clerk_id: user.id,
@@ -286,12 +284,8 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
           updated_at: new Date().toISOString(),
         };
 
-        // Add optional columns only if they exist in the schema
-        if (firstName) profileData.first_name = firstName;
-        if (lastName) profileData.last_name = lastName;
-        if (typeof isAdmin === 'boolean') profileData.is_approved = isAdmin;
-        if (isAdmin) profileData.status = 'approved' as const;
-        else profileData.status = 'pending' as const;
+        // Only add columns that we know exist in the current schema
+        // Skip first_name, last_name, is_approved, status until migration is applied
 
         console.log('Profile data to insert:', profileData);
 
@@ -314,10 +308,7 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
             role: isAdmin ? getAdminRole(userEmail) : 'devotee',
           };
 
-          // Add optional columns only if they exist in the schema
-          if (typeof isAdmin === 'boolean') minimalProfileData.is_approved = isAdmin;
-          if (isAdmin) minimalProfileData.status = 'approved' as const;
-          else minimalProfileData.status = 'pending' as const;
+          // Skip optional columns until migration is applied
           
           console.log('Trying with minimal profile data:', minimalProfileData);
           
@@ -386,6 +377,14 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
     console.log('Refreshing user profile...');
     setIsCreatingProfile(true);
     await createOrUpdateUserProfile();
+    
+    // Force profile refresh trigger update
+    setProfileRefreshTrigger(prev => prev + 1);
+    
+    // Force another update after a small delay to ensure all components get the update
+    setTimeout(() => {
+      setProfileRefreshTrigger(prev => prev + 1);
+    }, 100);
   };
 
   const approveUser = async (userId: string) => {
@@ -395,12 +394,7 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
         updated_at: new Date().toISOString()
       };
       
-      // Add is_approved only if the column exists
-      try {
-        updateData.is_approved = true;
-      } catch (e) {
-        console.log('is_approved column not available, skipping');
-      }
+      // Skip is_approved until migration is applied
       
       const { error } = await supabase
         .from('user_profiles')
@@ -432,12 +426,7 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
         updated_at: new Date().toISOString()
       };
       
-      // Add is_approved only if the column exists
-      try {
-        updateData.is_approved = false;
-      } catch (e) {
-        console.log('is_approved column not available, skipping');
-      }
+      // Skip is_approved until migration is applied
       
       const { error } = await supabase
         .from('user_profiles')
@@ -508,10 +497,7 @@ export const ClerkAuthProvider: React.FC<ClerkAuthProviderProps> = ({ children }
       updated_at: new Date().toISOString(),
     };
 
-    // Add optional columns only if they exist in the schema
-    if (typeof isAdmin === 'boolean') mockProfile.is_approved = isAdmin;
-    if (isAdmin) mockProfile.status = 'approved' as const;
-    else mockProfile.status = 'pending' as const;
+    // Skip optional columns until migration is applied
     
     setUserProfile(mockProfile);
     setIsProfileLoaded(true);

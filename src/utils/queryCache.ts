@@ -85,5 +85,9 @@ export function withCache<T>(
 // Cache invalidation helpers
 export const invalidateUserCache = () => queryCache.invalidate('user:');
 export const invalidateRecordsCache = () => queryCache.invalidate('records:');
+export const invalidateDevoteesCache = () => queryCache.invalidate('devotees:');
 export const invalidateEventsCache = () => queryCache.invalidate('events:');
+export const invalidateGroupsCache = () => queryCache.invalidate('groups:');
+export const invalidateDashboardCache = () => queryCache.invalidate('dashboard:');
 export const invalidateStatsCache = () => queryCache.invalidate('stats:');
+export const invalidateAllCache = () => queryCache.clear();

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Save, User, Phone, FileText, Activity, Clock, MapPin, CreditCard, Mail, Calendar, Briefcase, Heart } from 'lucide-react';
 import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { supabase, Database } from '../lib/supabase';
+import { logProfileUpdate } from '../lib/activityLogger';
+import { invalidateUserCache, invalidateDashboardCache } from '../utils/queryCache';
 
 type ActivityLog = Database['public']['Tables']['activity_logs']['Row'];
 
@@ -103,6 +105,20 @@ export default function Profile() {
     setMessage(null);
 
     try {
+      // Store old values for activity logging
+      const oldValues = {
+        full_name: profile.full_name,
+        nic_number: profile.nic_number,
+        address: profile.address,
+        phone: profile.phone,
+        email: profile.email,
+        date_of_birth: profile.date_of_birth,
+        occupation: profile.occupation,
+        emergency_contact: profile.emergency_contact,
+        temple_join_date: profile.temple_join_date,
+        bio: (profile as any)?.bio,
+      };
+
       const { error } = await supabase
         .from('user_profiles')
         .update(sanitizedData)
@@ -110,8 +126,20 @@ export default function Profile() {
 
       if (error) throw error;
 
-      await refreshProfile();
-      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+          // Log the activity
+          await logProfileUpdate(
+            profile.id,
+            null, // No admin ID for self-updates
+            oldValues,
+            sanitizedData,
+            'Profile information updated'
+          );
+
+          // Invalidate caches and refresh profile
+          invalidateUserCache();
+          invalidateDashboardCache();
+          await refreshProfile();
+          setMessage({ type: 'success', text: 'Profile updated successfully!' });
     } catch (error) {
       console.error('Error updating profile:', error);
       setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' });

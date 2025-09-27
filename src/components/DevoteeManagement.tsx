@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Check, X, Trash2, Search, Filter, Edit3, Save, Activity, Heart, MapPin, Phone, CreditCard, Settings, Calendar, UserCheck, Building2, QrCode, Scan, Users } from 'lucide-react';
 import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { supabase, Database } from '../lib/supabase';
+import { logProfileUpdate, logProfileDeletion, logEventAssignment } from '../lib/activityLogger';
+import { invalidateDevoteesCache, invalidateEventsCache, invalidateGroupsCache, invalidateDashboardCache } from '../utils/queryCache';
 import QRCodeGenerator from './QRCodeGenerator';
 import QRCodeScanner from './QRCodeScanner';
 
@@ -353,6 +355,10 @@ export default function DevoteeManagement() {
       }
       
       console.log('Devotee deleted successfully');
+      
+      // Invalidate caches and refresh data
+      invalidateDevoteesCache();
+      invalidateDashboardCache();
       await fetchDevotees();
       setNotification({ type: 'success', message: 'Devotee deleted successfully!' });
       // Auto-hide notification after 3 seconds
@@ -413,15 +419,44 @@ export default function DevoteeManagement() {
     };
 
     try {
+      // Store old values for activity logging
+      const oldValues = {
+        full_name: editingDevotee.full_name,
+        nic_number: editingDevotee.nic_number,
+        address: editingDevotee.address,
+        phone: editingDevotee.phone,
+        email: editingDevotee.email,
+        date_of_birth: editingDevotee.date_of_birth,
+        occupation: editingDevotee.occupation,
+        emergency_contact: editingDevotee.emergency_contact,
+        temple_join_date: editingDevotee.temple_join_date,
+        bio: (editingDevotee as any)?.bio,
+        role: editingDevotee.role,
+        status: editingDevotee.status,
+        group_id: editingDevotee.group_id,
+      };
+
       const { error } = await supabase
         .from('user_profiles')
         .update(sanitizedData)
         .eq('id', editingDevotee.id);
 
       if (error) throw error;
-      
-      await fetchDevotees();
-      setEditingDevotee(null);
+
+          // Log the activity
+          await logProfileUpdate(
+            editingDevotee.id,
+            userProfile?.id || null, // Admin ID
+            oldValues,
+            sanitizedData,
+            `Profile updated by ${userProfile?.role || 'admin'}`
+          );
+
+          // Invalidate caches and refresh data
+          invalidateDevoteesCache();
+          invalidateDashboardCache();
+          await fetchDevotees();
+          setEditingDevotee(null);
     } catch (error) {
       console.error('Error updating devotee:', error);
       alert('Error updating devotee. Please try again.');
@@ -571,6 +606,11 @@ export default function DevoteeManagement() {
       } else {
         setNotification({ type: 'success', message: 'Event assigned successfully!' });
         setTimeout(() => setNotification(null), 3000);
+        
+        // Invalidate caches
+        invalidateEventsCache();
+        invalidateDevoteesCache();
+        
         // Refresh assigned users list
         if (selectedEvent) {
           fetchAssignedUsers(selectedEvent.id);
@@ -590,13 +630,54 @@ export default function DevoteeManagement() {
 
   const handleAssignEventToGroup = async (eventId: string, groupId: string) => {
     try {
+      // First check if the assignment already exists
+      const { data: existingAssignment, error: checkError } = await supabase
+        .from('group_event_assignments')
+        .select('id')
+        .eq('event_id', eventId)
+        .eq('group_id', groupId)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      if (existingAssignment) {
+        setNotification({
+          type: 'error',
+          message: 'This group is already assigned to this event.'
+        });
+        setTimeout(() => setNotification(null), 5000);
+        return;
+      }
+
       const { error } = await supabase
         .from('group_event_assignments')
         .insert([{ event_id: eventId, group_id: groupId }]);
 
-      if (error) throw error;
-      setNotification({ type: 'success', message: 'Event assigned to group successfully!' });
-      setTimeout(() => setNotification(null), 3000);
+      if (error) {
+        if (error.code === '23505') {
+          setNotification({
+            type: 'error',
+            message: 'This group is already assigned to this event.'
+          });
+        } else {
+          throw error;
+        }
+      } else {
+        setNotification({ type: 'success', message: 'Event assigned to group successfully!' });
+        setTimeout(() => setNotification(null), 3000);
+        
+        // Invalidate caches
+        invalidateEventsCache();
+        invalidateGroupsCache();
+        
+        // Refresh assigned groups list if needed
+        if (selectedEvent) {
+          // You might want to add a fetchAssignedGroups function here
+          // fetchAssignedGroups(selectedEvent.id);
+        }
+      }
     } catch (error) {
       console.error('Error assigning event to group:', error);
       setNotification({ type: 'error', message: 'Error assigning event to group. Please try again.' });
