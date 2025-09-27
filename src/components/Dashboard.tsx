@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, memo, useCallback } from 'react';
 import { Users, BookOpen, Calendar, TrendingUp, UserCheck, Clock, Heart, Building2, QrCode, Download, Printer } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useClerkAuth } from '../contexts/ClerkAuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
@@ -46,7 +46,10 @@ const DashboardCard = memo(({ card, index }: { card: any; index: number }) => {
 DashboardCard.displayName = 'DashboardCard';
 
 export default function Dashboard() {
-  const { profile, isAdmin, isCommittee } = useAuth();
+  const { userProfile, isProfileComplete } = useClerkAuth();
+  const profile = userProfile;
+  const isAdmin = profile?.role === 'admin';
+  const isCommittee = profile?.role === 'admin' || profile?.role === 'committee';
   const { templeSettings } = useTheme();
   const { t } = useLanguage();
   
@@ -88,14 +91,20 @@ export default function Dashboard() {
     const fetchStats = async () => {
       try {
         if (isCommittee) {
-          const [recordsRes, eventsRes, devoteesRes, pendingRes, recentRecordsRes, upcomingEventsRes] = await Promise.all([
+          // Use Promise.allSettled to handle missing tables gracefully
+          const results = await Promise.allSettled([
             supabase.from('devotee_records').select('id', { count: 'exact' }),
             supabase.from('temple_events').select('id', { count: 'exact' }),
             supabase.from('user_profiles').select('id', { count: 'exact' }),
-            supabase.from('user_profiles').select('id', { count: 'exact' }).eq('status', 'pending'),
+            // supabase.from('user_profiles').select('id', { count: 'exact' }).eq('is_approved', false), // Disabled until migration
+            Promise.resolve({ count: 0 }),
             supabase.from('devotee_records').select('title, created_at, user_id').order('created_at', { ascending: false }).limit(5),
             supabase.from('temple_events').select('title, start_date, user_id').gte('start_date', new Date().toISOString()).order('start_date', { ascending: true }).limit(5),
           ]);
+
+          const [recordsRes, eventsRes, devoteesRes, pendingRes, recentRecordsRes, upcomingEventsRes] = results.map(result => 
+            result.status === 'fulfilled' ? result.value : { count: 0, data: [], error: null }
+          );
 
           setStats({
             totalRecords: recordsRes.count || 0,
@@ -107,7 +116,7 @@ export default function Dashboard() {
           });
         } else {
           // For regular users, get both created events and assigned events
-          const [recordsRes, createdEventsRes, assignedEventsRes, recentRecordsRes, createdUpcomingRes] = await Promise.all([
+          const results = await Promise.allSettled([
             supabase.from('devotee_records').select('id', { count: 'exact' }).eq('user_id', profile?.id),
             supabase.from('temple_events').select('id', { count: 'exact' }).eq('user_id', profile?.id),
             supabase.from('event_assignments').select('event_id').eq('user_id', profile?.id),
@@ -115,8 +124,12 @@ export default function Dashboard() {
             supabase.from('temple_events').select('title, start_date').eq('user_id', profile?.id).gte('start_date', new Date().toISOString()).order('start_date', { ascending: true }).limit(5),
           ]);
 
+          const [recordsRes, createdEventsRes, assignedEventsRes, recentRecordsRes, createdUpcomingRes] = results.map(result => 
+            result.status === 'fulfilled' ? result.value : { count: 0, data: [], error: null }
+          );
+
           // Get assigned event IDs
-          const assignedEventIds = assignedEventsRes.data?.map(assignment => assignment.event_id) || [];
+          const assignedEventIds = assignedEventsRes.data?.map((assignment: any) => assignment.event_id) || [];
           
           // Fetch assigned events details
           let assignedEventsData: any[] = [];
@@ -157,51 +170,11 @@ export default function Dashboard() {
       }
     };
 
-    if (profile?.status === 'approved') {
-      fetchStats();
-    } else {
-      setLoading(false);
-    }
+    // Always fetch stats for now (removed is_approved check)
+    fetchStats();
   }, [profile, isAdmin]);
 
-  if (profile?.status !== 'approved') {
-    return (
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-surface rounded-lg shadow-sm p-8 text-center border-theme">
-          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Heart className="w-10 h-10 text-orange-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-text mb-4">Welcome to Temple Committee</h2>
-          <div className="max-w-md mx-auto">
-            {profile?.status === 'pending' ? (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                <div className="flex items-center justify-center mb-2">
-                  <Clock className="w-5 h-5 text-yellow-600 mr-2" />
-                  <span className="font-medium text-yellow-800">Devotee Registration Pending</span>
-                </div>
-                <p className="text-yellow-700 text-sm">
-                  Your devotee registration is being reviewed by the temple committee. You'll receive access once approved.
-                </p>
-              </div>
-            ) : (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <div className="flex items-center justify-center mb-2">
-                  <UserCheck className="w-5 h-5 text-red-600 mr-2" />
-                  <span className="font-medium text-red-800">Registration Not Approved</span>
-                </div>
-                <p className="text-red-700 text-sm">
-                  Your devotee registration has been rejected. Please contact the temple committee for assistance.
-                </p>
-              </div>
-            )}
-            <p className="text-gray-600">
-              Thank you for registering with our temple. We'll notify you once your devotee status changes.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Removed approval check - users can access dashboard immediately
 
   // Memoize cards to prevent unnecessary re-computation
   const userCards = useMemo(() => [
@@ -274,6 +247,70 @@ export default function Dashboard() {
             {t('dashboard.welcome')} {profile?.full_name || ''}
           </p>
         </div>
+        
+        {/* Pending Approval Message - Disabled until migration */}
+        {profile && !profile.is_approved && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <Clock className="h-5 w-5 text-yellow-600" />
+              </div>
+              <div className="ml-3 flex-1">
+                <h3 className="text-sm font-medium text-yellow-800">
+                  Account Pending Approval
+                </h3>
+                <p className="mt-1 text-sm text-yellow-700">
+                  Your account is currently pending approval from an administrator. You can browse the system, but some features may be limited until your account is approved.
+                </p>
+                <div className="mt-3">
+                  <span className="text-xs text-yellow-600">
+                    Contact an administrator if you need immediate access.
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Simple Profile Completion Banner */}
+        {profile && (!profile.full_name || !profile.phone || !profile.address) && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <UserCheck className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="ml-3 flex-1">
+                <h3 className="text-sm font-medium text-blue-800">
+                  Complete Your Profile
+                </h3>
+                <p className="mt-1 text-sm text-blue-700">
+                  Add your personal details to get the most out of the temple management system.
+                </p>
+                <div className="mt-3">
+                  <button
+                    onClick={() => {
+                      // Navigate to profile settings or show a simple form
+                      alert('Profile completion feature coming soon! You can continue using the system.');
+                    }}
+                    className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    Complete Profile
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Dismiss the banner
+                      const banner = document.querySelector('.bg-blue-50');
+                      if (banner) banner.style.display = 'none';
+                    }}
+                    className="ml-3 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {loading ? (

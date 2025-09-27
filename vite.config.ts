@@ -4,8 +4,14 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      'react': 'react',
+      'react-dom': 'react-dom',
+    },
+  },
   optimizeDeps: {
-    include: ['react', 'react-dom', '@supabase/supabase-js'],
+    include: ['react', 'react-dom', '@supabase/supabase-js', '@clerk/clerk-react'],
     exclude: ['lucide-react'],
   },
   build: {
@@ -34,5 +40,7 @@ export default defineConfig({
   // Enable gzip compression
   server: {
     compress: true,
+    port: 5175,
+    host: true,
   },
 });

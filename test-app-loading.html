@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>App Loading Test</title>
+</head>
+<body>
+    <h1>Testing App Loading</h1>
+    <div id="test-results"></div>
+    
+    <script>
+        // Test 1: Check if we can access the app
+        fetch('http://localhost:5175/')
+            .then(response => response.text())
+            .then(html => {
+                const hasRoot = html.includes('id="root"');
+                document.getElementById('test-results').innerHTML += 
+                    `<p>App HTML loads: ${hasRoot ? 'YES' : 'NO'}</p>`;
+            })
+            .catch(error => {
+                document.getElementById('test-results').innerHTML += 
+                    `<p>App HTML error: ${error.message}</p>`;
+            });
+        
+        // Test 2: Check handshake URL
+        fetch('http://localhost:5175/dashboard?__clerk_handshake=test')
+            .then(response => response.text())
+            .then(html => {
+                const hasRoot = html.includes('id="root"');
+                document.getElementById('test-results').innerHTML += 
+                    `<p>Handshake URL loads: ${hasRoot ? 'YES' : 'NO'}</p>`;
+            })
+            .catch(error => {
+                document.getElementById('test-results').innerHTML += 
+                    `<p>Handshake URL error: ${error.message}</p>`;
+            });
+    </script>
+</body>
+</html>

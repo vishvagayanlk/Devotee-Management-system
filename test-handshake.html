@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Handshake Test</title>
+</head>
+<body>
+    <h1>Handshake URL Test</h1>
+    <p>Current URL: <span id="url"></span></p>
+    <p>Has Handshake: <span id="handshake"></span></p>
+    <p>Search Params: <span id="search"></span></p>
+    
+    <script>
+        const url = window.location.href;
+        const search = window.location.search;
+        const urlParams = new URLSearchParams(search);
+        const hasHandshake = urlParams.has('__clerk_handshake') || urlParams.has('__clerk_handshake_token');
+        
+        document.getElementById('url').textContent = url;
+        document.getElementById('handshake').textContent = hasHandshake ? 'YES' : 'NO';
+        document.getElementById('search').textContent = search;
+        
+        console.log('Handshake test:', { hasHandshake, url, search });
+    </script>
+</body>
+</html>

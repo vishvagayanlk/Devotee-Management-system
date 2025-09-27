@@ -12,7 +12,8 @@ import {
   Heart,
   Globe
 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useClerkAuth } from '../contexts/ClerkAuthContext';
+import { UserButton } from '@clerk/clerk-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState } from 'react';
@@ -23,7 +24,9 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { profile, isAdmin, isCommittee, signOut } = useAuth();
+  const { userProfile, signOut } = useClerkAuth();
+  const isAdmin = userProfile?.role === 'admin';
+  const isCommittee = userProfile?.role === 'committee';
   const { templeSettings } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -44,6 +47,7 @@ export default function Layout({ children }: LayoutProps) {
   ];
 
   const adminNavItems = [
+    { id: 'admin', label: 'Admin Panel', icon: Users, path: '/admin' },
     { id: 'settings', label: t('nav.settings'), icon: Settings, path: '/settings' },
   ];
 
@@ -100,22 +104,16 @@ export default function Layout({ children }: LayoutProps) {
               <User className="w-6 h-6 text-primary" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-text truncate">{profile?.full_name}</p>
+              <p className="text-sm font-medium text-text truncate">{userProfile?.full_name}</p>
               <p className="text-xs text-muted capitalize truncate">
-                {profile?.role === 'devotee' ? 'Devotee' : profile?.role === 'committee' ? 'Committee Member' : 'Admin'}
+                {userProfile?.role === 'devotee' ? 'Devotee' : userProfile?.role === 'committee' ? 'Committee Member' : 'Admin'}
               </p>
               <div className="flex items-center mt-1">
                 <div
-                  className={`w-2 h-2 rounded-full mr-2 flex-shrink-0 ${
-                    profile?.status === 'approved'
-                      ? 'bg-green-400'
-                      : profile?.status === 'pending'
-                      ? 'bg-yellow-400'
-                      : 'bg-red-400'
-                  }`}
+                  className="w-2 h-2 rounded-full mr-2 flex-shrink-0 bg-green-400"
                 />
                 <span className="text-xs text-muted capitalize truncate">
-                  {profile?.status}
+                  Active
                 </span>
               </div>
             </div>
@@ -146,13 +144,18 @@ export default function Layout({ children }: LayoutProps) {
         </nav>
 
         <div className="p-4 border-t border-theme">
-          <button
-            onClick={handleSignOut}
-            className="w-full flex items-center space-x-3 px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
-          >
-            <LogOut className="w-5 h-5 flex-shrink-0" />
-            <span className="text-sm font-medium">{t('nav.sign_out')}</span>
-          </button>
+          <div className="w-full px-4 py-3">
+            <UserButton 
+              afterSignOutUrl="/sign-in"
+              appearance={{
+                elements: {
+                  userButtonBox: "w-full",
+                  userButtonTrigger: "w-full justify-start",
+                  userButtonPopoverCard: "w-64",
+                }
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -176,20 +179,7 @@ export default function Layout({ children }: LayoutProps) {
             
             <div className="flex items-center justify-between space-x-4">
               <div className="flex-1">
-                {profile?.status === 'pending' && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
-                    <p className="text-sm text-yellow-800 text-center">
-                      Devotee registration pending committee approval
-                    </p>
-                  </div>
-                )}
-                {profile?.status === 'rejected' && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                    <p className="text-sm text-red-800 text-center">
-                      Registration has been rejected. Please contact committee.
-                    </p>
-                  </div>
-                )}
+                {/* Removed approval check - users can access all features */}
               </div>
               
               {/* Language Switcher */}

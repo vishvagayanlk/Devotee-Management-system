@@ -52,7 +52,6 @@ export default function Auth() {
         const { data, error } = await supabase
           .from('groups')
           .select('*')
-          .eq('is_active', true)
           .order('name');
 
         if (error) throw error;
@@ -401,7 +400,7 @@ export default function Auth() {
               
               <div className="space-y-4">
                 <p className="text-gray-600 text-sm sm:text-base">
-                  Thank you for registering with our temple. We've sent a confirmation email to:
+                  Thank you for registering with our temple! We've sent a confirmation email to:
                 </p>
                 
                 <div className="bg-gray-50 rounded-lg p-4">
@@ -415,7 +414,15 @@ export default function Auth() {
                     <Mail className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                     <div className="text-left">
                       <p className="text-sm font-medium text-gray-900">Check your inbox</p>
-                      <p className="text-xs text-gray-600">Click the confirmation link in the email to activate your account</p>
+                      <p className="text-xs text-gray-600">Click the confirmation link in the email to verify your email address</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <Check className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-gray-900">Email verification</p>
+                      <p className="text-xs text-gray-600">Confirm your email address first</p>
                     </div>
                   </div>
                   
@@ -428,7 +435,7 @@ export default function Auth() {
                   </div>
                   
                   <div className="flex items-start space-x-3">
-                    <User className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <User className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                     <div className="text-left">
                       <p className="text-sm font-medium text-gray-900">Access granted</p>
                       <p className="text-xs text-gray-600">You'll receive access once approved</p>
@@ -454,6 +461,7 @@ export default function Auth() {
                 
                 <div className="text-xs text-gray-500">
                   <p>Didn't receive the email? Check your spam folder or contact the temple committee.</p>
+                  <p className="mt-1"><strong>Note:</strong> You must confirm your email before your account can be reviewed by the committee.</p>
                 </div>
               </div>
             </div>

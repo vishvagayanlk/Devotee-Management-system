@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { supabase, Database } from '../lib/supabase';
 
 type TempleSettings = Database['public']['Tables']['temple_settings']['Row'];
@@ -38,14 +40,14 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       const { data, error } = await supabase
         .from('temple_settings')
         .select('*')
-        .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
 
       if (error && error.code !== 'PGRST116') {
         console.error('Temple settings fetch error:', error);
-        throw error;
+        // Don't throw error, just log it and continue
+        console.log('Continuing without temple settings...');
       }
 
       console.log('Temple settings loaded:', data);
@@ -58,6 +60,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('Error fetching temple settings:', error);
+      // Continue without temple settings
+      setTempleSettings(null);
     }
   };
 
@@ -74,7 +78,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         text_color: '#1F2937',
         font_family: 'Inter',
         theme_name: 'default',
-        is_active: true,
       };
 
       const { data, error } = await supabase
@@ -100,13 +103,18 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       const { data, error } = await supabase
         .from('themes')
         .select('*')
-        .eq('is_active', true)
-        .order('display_name', { ascending: true });
+        .order('name', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching themes:', error);
+        // Continue without themes
+        setThemes([]);
+        return;
+      }
       setThemes(data || []);
     } catch (error) {
       console.error('Error fetching themes:', error);
+      setThemes([]);
     }
   };
 

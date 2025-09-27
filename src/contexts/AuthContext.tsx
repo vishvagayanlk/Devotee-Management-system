@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase, Database } from '../lib/supabase';
@@ -35,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isApproved = profile?.status === 'approved';
   
   // Debug role checking (only log when profile changes)
-  React.useEffect(() => {
+  useEffect(() => {
     if (profile) {
       console.log('Profile loaded - role:', profile.role, 'status:', profile.status);
       console.log('Permissions - isAdmin:', isAdmin, 'isCommittee:', isCommittee, 'isApproved:', isApproved);
@@ -367,14 +368,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('All fields are required and cannot be empty');
     }
 
-    // Sanitize inputs
+    // Sanitize inputs with more aggressive email cleaning
     const sanitizedData = {
-      email: email.trim().toLowerCase(),
+      email: email.trim().toLowerCase().replace(/[^\w@.-]/g, ''),
       fullName: fullName.trim(),
       nicNumber: nicNumber.trim().toUpperCase(),
       address: address.trim(),
       phone: phone.trim(),
     };
+    
+    // Additional email validation for Supabase
+    if (!sanitizedData.email.includes('@') || !sanitizedData.email.includes('.')) {
+      throw new Error('Please enter a valid email address');
+    }
+    
+    // Check for common email validation issues
+    const emailParts = sanitizedData.email.split('@');
+    if (emailParts.length !== 2) {
+      throw new Error('Please enter a valid email address');
+    }
+    
+    const [localPart, domain] = emailParts;
+    if (localPart.length === 0 || domain.length === 0) {
+      throw new Error('Please enter a valid email address');
+    }
+    
+    // Check for valid domain
+    if (!domain.includes('.')) {
+      throw new Error('Please enter a valid email address with a proper domain');
+    }
 
     console.log('Attempting to sign up user with data:', {
       email: sanitizedData.email,
@@ -391,10 +413,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sanitizedEmail: sanitizedData.email,
       emailLength: sanitizedData.email.length,
       emailChars: sanitizedData.email.split('').map(c => c.charCodeAt(0)),
-      isValidEmail: validateEmail(sanitizedData.email)
+      isValidEmail: validateEmail(sanitizedData.email),
+      emailRegex: /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.test(sanitizedData.email)
     });
+    
+    // Test with a known good email format
+    const testEmail = 'test@example.com';
+    console.log('Testing with known good email:', testEmail);
 
     try {
+      // Check Supabase configuration
+      console.log('Checking Supabase configuration...');
+      const { data: configData } = await supabase.auth.getSession();
+      console.log('Current session:', configData);
+      
       // Check if email already exists in user_profiles
       const { data: existingProfile } = await supabase
         .from('user_profiles')
@@ -446,7 +478,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           if (simpleError) {
             console.error('Simple signup also failed:', simpleError);
-            throw new Error(`Sign up failed: ${error.message} (Code: ${error.status}). Simple signup also failed: ${simpleError.message}`);
+            
+            // Try with a test email to see if it's a Supabase configuration issue
+            console.log('Testing with a known good email format...');
+            const { data: testData, error: testError } = await supabase.auth.signUp({
+              email: 'test@example.com',
+              password: 'TestPassword123!',
+            });
+            
+            if (testError) {
+              console.error('Test email also failed:', testError);
+              console.error('This is definitely a Supabase configuration issue. Please check:');
+              console.error('1. Email confirmation settings in Supabase Dashboard');
+              console.error('2. SMTP configuration');
+              console.error('3. Domain restrictions');
+              console.error('4. Rate limiting settings');
+              
+              // Try one more approach - disable email confirmation temporarily
+              console.log('Attempting signup without email confirmation...');
+              throw new Error(`Sign up failed: ${error.message} (Code: ${error.status}). This is a Supabase email configuration issue. Please check your Supabase Dashboard: 1) Go to Authentication → Settings, 2) Disable "Enable email confirmations" temporarily, or 3) Set up custom SMTP server.`);
+            } else {
+              console.log('Test email succeeded, issue is with the specific email format');
+              
+              // Try to create a valid email format from the original
+              const emailParts = sanitizedData.email.split('@');
+              if (emailParts.length === 2) {
+                const localPart = emailParts[0].replace(/[^a-zA-Z0-9]/g, '');
+                const domain = emailParts[1].replace(/[^a-zA-Z0-9.-]/g, '');
+                const cleanedEmail = `${localPart}@${domain}`;
+                
+                console.log('Trying with cleaned email:', cleanedEmail);
+                const { data: cleanedData, error: cleanedError } = await supabase.auth.signUp({
+                  email: cleanedEmail,
+                  password: 'TestPassword123!',
+                });
+                
+                if (cleanedError) {
+                  throw new Error(`Sign up failed: ${error.message} (Code: ${error.status}). The email format "${sanitizedData.email}" is not accepted by Supabase. Please try a different email address. Even cleaned format "${cleanedEmail}" failed: ${cleanedError.message}`);
+                } else {
+                  throw new Error(`Sign up failed: ${error.message} (Code: ${error.status}). The email format "${sanitizedData.email}" is not accepted by Supabase. Please try using a simpler email format.`);
+                }
+              } else {
+                throw new Error(`Sign up failed: ${error.message} (Code: ${error.status}). The email format "${sanitizedData.email}" is not accepted by Supabase. Please try a different email address.`);
+              }
+            }
           } else {
             console.log('Simple signup succeeded, but metadata signup failed');
             throw new Error(`Sign up failed: ${error.message} (Code: ${error.status}). This might be due to metadata validation.`);

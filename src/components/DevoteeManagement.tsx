@@ -193,7 +193,6 @@ export default function DevoteeManagement() {
       const { data, error } = await supabase
         .from('groups')
         .select('*')
-        .eq('is_active', true)
         .order('name');
 
       if (error) throw error;

@@ -6,6 +6,8 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 // Debug logging to help troubleshoot configuration
 console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Missing');
 console.log('Supabase Anon Key:', supabaseAnonKey ? 'Set' : 'Missing');
+console.log('Supabase URL value:', supabaseUrl);
+console.log('Supabase Anon Key length:', supabaseAnonKey?.length);
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase environment variables. Please check your .env file.');
@@ -26,12 +28,17 @@ export type Database = {
       user_profiles: {
         Row: {
           id: string;
+          clerk_id: string | null;
           full_name: string;
+          first_name: string | null;
+          last_name: string | null;
           role: 'devotee' | 'committee' | 'admin';
           status: 'pending' | 'approved' | 'rejected';
+          is_approved: boolean;
           nic_number: string | null;
           address: string | null;
           phone: string | null;
+          phone_number: string | null;
           email: string | null;
           date_of_birth: string | null;
           occupation: string | null;
@@ -45,12 +52,17 @@ export type Database = {
         };
         Insert: {
           id: string;
+          clerk_id?: string | null;
           full_name: string;
+          first_name?: string | null;
+          last_name?: string | null;
           role?: 'devotee' | 'committee' | 'admin';
           status?: 'pending' | 'approved' | 'rejected';
+          is_approved?: boolean;
           nic_number?: string | null;
           address?: string | null;
           phone?: string | null;
+          phone_number?: string | null;
           email?: string | null;
           date_of_birth?: string | null;
           occupation?: string | null;
@@ -61,10 +73,14 @@ export type Database = {
           group_id?: string | null;
         };
         Update: {
+          clerk_id?: string | null;
           full_name?: string;
+          first_name?: string | null;
+          last_name?: string | null;
           nic_number?: string | null;
           address?: string | null;
           phone?: string | null;
+          phone_number?: string | null;
           email?: string | null;
           date_of_birth?: string | null;
           occupation?: string | null;
@@ -74,6 +90,7 @@ export type Database = {
           bio?: string | null;
           group_id?: string | null;
           status?: 'pending' | 'approved' | 'rejected';
+          is_approved?: boolean;
         };
       };
       groups: {

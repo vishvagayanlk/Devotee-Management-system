@@ -4,8 +4,10 @@ import App from './App.tsx';
 import './index.css';
 import './theme.css';
 import { initPerformanceMonitoring } from './utils/performance';
+import { initMonitoring } from './lib/monitoring';
 
-// Initialize performance monitoring
+// Initialize monitoring and performance tracking
+initMonitoring();
 initPerformanceMonitoring();
 
 // Register service worker for offline functionality

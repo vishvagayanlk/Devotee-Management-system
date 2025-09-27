@@ -24,6 +24,11 @@ const translations = {
     'nav.settings': 'Temple Settings',
     'nav.sign_out': 'Sign Out',
     
+    // Authentication
+    'auth.sign_in_subtitle': 'Sign in to your temple account',
+    'auth.sign_up_subtitle': 'Create your temple account',
+    'auth.temple_footer': 'Blessed to serve {temple}',
+    
     // Dashboard
     'dashboard.title': 'Dashboard',
     'dashboard.committee_title': 'Committee Dashboard',
@@ -149,6 +154,11 @@ const translations = {
     'nav.all_events': 'සියලුම සිදුවීම්',
     'nav.settings': 'විහාර සැකසුම්',
     'nav.sign_out': 'ඉවත් වන්න',
+    
+    // Authentication
+    'auth.sign_in_subtitle': 'ඔබේ විහාර ගිණුමට පුරන්න',
+    'auth.sign_up_subtitle': 'ඔබේ විහාර ගිණුම සාදන්න',
+    'auth.temple_footer': '{temple} සේවය කිරීමට ආශිර්වාදිතයි',
     
     // Dashboard
     'dashboard.title': 'ප්‍රධාන පිටුව',
