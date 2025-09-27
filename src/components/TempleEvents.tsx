@@ -211,7 +211,7 @@ export default function TempleEvents() {
   const convertToISOString = (dateTimeLocal: string): string => {
     if (!dateTimeLocal) return '';
     // Convert datetime-local format (YYYY-MM-DDTHH:MM) to ISO string
-    // This preserves the local time as UTC
+    // The datetime-local input already provides the correct local time
     const date = new Date(dateTimeLocal);
     return date.toISOString();
   };
@@ -220,11 +220,14 @@ export default function TempleEvents() {
     if (!isoString) return '';
     // Convert ISO string back to datetime-local format
     const date = new Date(isoString);
+    
+    // Use local time, not UTC
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
+    
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
@@ -425,7 +428,8 @@ export default function TempleEvents() {
         day: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
-        hour12: true
+        hour12: true,
+        timeZone: timezone
       };
 
       if (end && end.toDateString() !== start.toDateString()) {
@@ -434,15 +438,18 @@ export default function TempleEvents() {
         return `${start.toLocaleDateString('en-US', { 
           year: 'numeric', 
           month: 'short', 
-          day: 'numeric' 
+          day: 'numeric',
+          timeZone: timezone
         })} ${start.toLocaleTimeString('en-US', { 
           hour: 'numeric', 
           minute: '2-digit', 
-          hour12: true 
+          hour12: true,
+          timeZone: timezone
         })} - ${end.toLocaleTimeString('en-US', { 
           hour: 'numeric', 
           minute: '2-digit', 
-          hour12: true 
+          hour12: true,
+          timeZone: timezone
         })} (${timezone})`;
       } else {
         return `${start.toLocaleString('en-US', formatOptions)} (${timezone})`;
@@ -512,7 +519,8 @@ export default function TempleEvents() {
         weekday: 'long', 
         year: 'numeric', 
         month: 'long', 
-        day: 'numeric' 
+        day: 'numeric',
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
       });
       
       if (!groups[dateKey]) {
@@ -535,6 +543,7 @@ export default function TempleEvents() {
     // Sort date groups chronologically
     const sortedGroups: { [key: string]: TempleEvent[] } = {};
     const sortedDates = Object.keys(groups).sort((a, b) => {
+      // Parse the date string back to a date for comparison
       const dateA = new Date(a);
       const dateB = new Date(b);
       if (activeTab === 'upcoming') {
@@ -551,8 +560,6 @@ export default function TempleEvents() {
     return sortedGroups;
   };
 
-  // Show access restricted message but still show tabs for approved users
-  const showAccessRestricted = userProfile?.status !== 'approved';
 
   const filteredEvents = filterEventsByTab(events);
   const eventGroups = groupEventsByDate(filteredEvents);
@@ -607,6 +614,12 @@ export default function TempleEvents() {
           </div>
           <div className="text-xs text-gray-400 mt-1">
             Debug: Total Events: {events.length} | Upcoming: {events.filter(isEventUpcoming).length} | Past: {events.filter(isEventPast).length} | Current Time: {new Date().toISOString()}
+          </div>
+          <div className="text-xs text-gray-400 mt-1">
+            Sample Event Debug: {events.length > 0 && (() => {
+              const sampleEvent = events[0];
+              return `Title: ${sampleEvent.title} | Start: ${sampleEvent.start_date} | End: ${sampleEvent.end_date} | Local Start: ${new Date(sampleEvent.start_date).toLocaleString()} | Local End: ${sampleEvent.end_date ? new Date(sampleEvent.end_date).toLocaleString() : 'N/A'}`;
+            })()}
           </div>
           {!isCommittee && events.length > 0 && (
             <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 mt-3 text-sm">
