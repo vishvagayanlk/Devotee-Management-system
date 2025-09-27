@@ -208,6 +208,26 @@ export default function TempleEvents() {
     }
   };
 
+  const convertToISOString = (dateTimeLocal: string): string => {
+    if (!dateTimeLocal) return '';
+    // Convert datetime-local format (YYYY-MM-DDTHH:MM) to ISO string
+    // This preserves the local time as UTC
+    const date = new Date(dateTimeLocal);
+    return date.toISOString();
+  };
+
+  const convertFromISOString = (isoString: string): string => {
+    if (!isoString) return '';
+    // Convert ISO string back to datetime-local format
+    const date = new Date(isoString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   const handleSaveEvent = async () => {
     if (!formData.title.trim() || !formData.start_date) return;
 
@@ -217,15 +237,15 @@ export default function TempleEvents() {
         title: formData.title,
         description: formData.description,
         location: formData.location,
-        start_date: formData.start_date,
-        end_date: formData.end_date || null,
+        start_date: convertToISOString(formData.start_date),
+        end_date: formData.end_date ? convertToISOString(formData.end_date) : null,
         all_day: formData.all_day,
         max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
         registration_required: formData.registration_required,
         is_recurring: formData.is_recurring,
         recurrence_type: formData.is_recurring ? formData.recurrence_type : null,
         recurrence_interval: formData.is_recurring ? formData.recurrence_interval : null,
-        recurrence_end_date: formData.is_recurring && formData.recurrence_end_date ? formData.recurrence_end_date : null,
+        recurrence_end_date: formData.is_recurring && formData.recurrence_end_date ? convertToISOString(formData.recurrence_end_date) : null,
         assignment_type: formData.assignment_type,
         is_assigned_only: formData.is_assigned_only,
       };
@@ -300,15 +320,15 @@ export default function TempleEvents() {
       title: event.title,
       description: event.description || '',
       location: event.location || '',
-      start_date: new Date(event.start_date).toISOString().slice(0, 16),
-      end_date: event.end_date ? new Date(event.end_date).toISOString().slice(0, 16) : '',
+      start_date: convertFromISOString(event.start_date),
+      end_date: event.end_date ? convertFromISOString(event.end_date) : '',
       all_day: event.all_day,
       max_participants: event.max_participants ? event.max_participants.toString() : '',
       registration_required: event.registration_required,
       is_recurring: event.is_recurring || false,
       recurrence_type: event.recurrence_type || 'monthly',
       recurrence_interval: event.recurrence_interval || 1,
-      recurrence_end_date: event.recurrence_end_date ? new Date(event.recurrence_end_date).toISOString().slice(0, 10) : '',
+      recurrence_end_date: event.recurrence_end_date ? convertFromISOString(event.recurrence_end_date).slice(0, 10) : '',
       assignment_type: event.assignment_type || 'all',
       is_assigned_only: event.is_assigned_only || false,
     });
@@ -378,20 +398,58 @@ export default function TempleEvents() {
   };
 
   const formatEventDate = (startDate: string, endDate: string | null, allDay: boolean) => {
-    const start = new Date(startDate);
-    const end = endDate ? new Date(endDate) : null;
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    try {
+      const start = new Date(startDate);
+      const end = endDate ? new Date(endDate) : null;
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    if (allDay) {
-      return `All day - ${start.toLocaleDateString()} (${timezone})`;
-    }
+      // Check if dates are valid
+      if (isNaN(start.getTime())) {
+        return 'Invalid start date';
+      }
+      if (end && isNaN(end.getTime())) {
+        return 'Invalid end date';
+      }
 
-    if (end && end.toDateString() !== start.toDateString()) {
-      return `${start.toLocaleString()} - ${end.toLocaleString()} (${timezone})`;
-    } else if (end) {
-      return `${start.toLocaleDateString()} ${start.toLocaleTimeString()} - ${end.toLocaleTimeString()} (${timezone})`;
-    } else {
-      return `${start.toLocaleString()} (${timezone})`;
+      if (allDay) {
+        return `All day - ${start.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })} (${timezone})`;
+      }
+
+      const formatOptions: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      };
+
+      if (end && end.toDateString() !== start.toDateString()) {
+        return `${start.toLocaleString('en-US', formatOptions)} - ${end.toLocaleString('en-US', formatOptions)} (${timezone})`;
+      } else if (end) {
+        return `${start.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        })} ${start.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit', 
+          hour12: true 
+        })} - ${end.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit', 
+          hour12: true 
+        })} (${timezone})`;
+      } else {
+        return `${start.toLocaleString('en-US', formatOptions)} (${timezone})`;
+      }
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Date formatting error';
     }
   };
 
@@ -401,7 +459,35 @@ export default function TempleEvents() {
 
   const isEventUpcoming = (event: TempleEvent) => {
     const now = getCurrentTime();
-    const eventEndTime = event.end_date ? new Date(event.end_date) : new Date(event.start_date);
+    
+    // Parse dates more carefully
+    let eventEndTime: Date;
+    try {
+      const endDateString = event.end_date || event.start_date;
+      eventEndTime = new Date(endDateString);
+      
+      // Check if the date is valid
+      if (isNaN(eventEndTime.getTime())) {
+        console.warn('Invalid date for event:', event.title, event.start_date, event.end_date);
+        return false;
+      }
+    } catch (error) {
+      console.warn('Error parsing date for event:', event.title, error);
+      return false;
+    }
+    
+    // Debug logging
+    console.log('Event filtering debug:', {
+      eventTitle: event.title,
+      startDate: event.start_date,
+      endDate: event.end_date,
+      eventEndTime: eventEndTime.toISOString(),
+      currentTime: now.toISOString(),
+      isUpcoming: eventEndTime > now,
+      timeDiff: eventEndTime.getTime() - now.getTime(),
+      timeDiffHours: (eventEndTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+    });
+    
     return eventEndTime > now;
   };
 
@@ -465,18 +551,8 @@ export default function TempleEvents() {
     return sortedGroups;
   };
 
-  if (userProfile?.status !== 'approved') {
-    return (
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Restricted</h2>
-          <p className="text-gray-600">
-            You need to be approved to access temple events.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Show access restricted message but still show tabs for approved users
+  const showAccessRestricted = userProfile?.status !== 'approved';
 
   const filteredEvents = filterEventsByTab(events);
   const eventGroups = groupEventsByDate(filteredEvents);
@@ -528,6 +604,9 @@ export default function TempleEvents() {
           <div className="text-sm text-gray-500 mt-1">
             <Clock className="w-4 h-4 inline mr-1" />
             Timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
+          </div>
+          <div className="text-xs text-gray-400 mt-1">
+            Debug: Total Events: {events.length} | Upcoming: {events.filter(isEventUpcoming).length} | Past: {events.filter(isEventPast).length} | Current Time: {new Date().toISOString()}
           </div>
           {!isCommittee && events.length > 0 && (
             <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 mt-3 text-sm">
